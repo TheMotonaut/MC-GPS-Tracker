@@ -92,7 +92,7 @@ GenerateClassCluster=0
 DocumentUniqueId=DEJZGQWO
 
 [Document4]
-DocumentPath=..\Git Lib\Symbols\Moto Symbol Lib.SchLib
+DocumentPath=..\..\Git Lib\Symbols\Moto Symbol Lib.SchLib
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -109,7 +109,7 @@ GenerateClassCluster=0
 DocumentUniqueId=ZDZRLDTI
 
 [Document5]
-DocumentPath=..\Git Lib\Footprints\Moto Footprint Lib.PcbLib
+DocumentPath=..\..\Git Lib\Footprints\Moto Footprint Lib.PcbLib
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
@@ -123,7 +123,7 @@ ClassGenCCAutoRoomEnabled=1
 ClassGenNCAutoScope=None
 DItemRevisionGUID=
 GenerateClassCluster=0
-DocumentUniqueId=VHPIXSLX
+DocumentUniqueId=
 
 [Configuration1]
 Name=Sources
