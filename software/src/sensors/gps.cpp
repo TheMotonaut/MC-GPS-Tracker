@@ -9,6 +9,15 @@
 MC_GPS_Coordinate::MC_GPS_Coordinate(void) {}
 MC_GPS_Time::MC_GPS_Time(void) {}
 
+void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_tokens){
+  std::istringstream ss(msg);
+  std::string token;
+  message_tokens -> clear();
+  while(std::getline(ss, token, ',')) {
+    message_tokens -> push_back(token);
+  }
+}
+
 std::array<std::string, 9> msg_table = {
   "NEVERMATCH",
   "$GPGGA",
@@ -66,7 +75,10 @@ void MC_GPS::shutdown(void) {
 }
 
 void MC_GPS::step(void) {
-    uint32_t len = Serial1.readBytes(input_buffer + input_buffer_offset, sizeof(input_buffer) - input_buffer_offset - 1);
+    uint32_t len = Serial1.readBytes(
+        input_buffer + input_buffer_offset,
+        sizeof(input_buffer) - input_buffer_offset - 1
+    );
     uint32_t end = input_buffer_offset + len;
     input_buffer[end] = '\0';
     for(uint32_t index = input_buffer_offset; index < end; index ++) {
@@ -82,66 +94,36 @@ void MC_GPS::step(void) {
 }
 
 void MC_GPS::process(void) {
-    // TODO: We will have to process this string later
-    // in order to read the coordinates and other status
-    // values.
-
-    
-    Serial.println(input_buffer);
     NMEA_MSG_T msg_id = NMEA_MSG_EMPTY;
-
-    tokenize_message();
-    
-    for(uint8_t i = 0; i < msg_table.size(); i++){
-      if(this->message_tokens[0] == msg_table[i]){
+    std::vector<std::string> message_tokens;
+    tokenizeNMEAMessage(input_buffer, & message_tokens);
+    for(uint8_t i = 0; i < msg_table.size(); i++) {
+      if(message_tokens[0] == msg_table[i]) {
         msg_id = (NMEA_MSG_T)(i);
-        /*
-        Serial.print(this->message_tokens[0].c_str());
-        Serial.print(": Found message id: ");
-        Serial.println(msg_id);
-        */
         break;
       }
     }
-    //Serial.println("Hej");
-    switch (msg_id)
-    {
-    case NMEA_MSG_GPGAA:
-      Serial.println("Recieved GPGAA:");
-      
-      this->coordinate.latitude = std::stof(this->message_tokens[2]);
-      this->coordinate.longitude = std::stof(this->message_tokens[3]);
-      this->time.hours = stoi(this->message_tokens[1].substr(0, 2));    //hhmmss.sss
-      this->time.minutes = stoi(this->message_tokens[1].substr(2,2));
-      this->time.seconds = stoi(this->message_tokens[1].substr(4,2));
-      this->time.milliseconds = stoi(this->message_tokens[1].substr(6,3));
-      break;
-    
-    case NMEA_MSG_GPGLL:
-      this->coordinate.latitude = std::stof(this->message_tokens[2]);
-      this->coordinate.longitude = std::stof(this->message_tokens[4]);
-      this->time.hours = stoi(this->message_tokens[5].substr(0, 2));
-      this->time.minutes = stoi(this->message_tokens[5].substr(2,2));
-      this->time.seconds = stoi(this->message_tokens[5].substr(4,2));
-      this->time.milliseconds = stoi(this->message_tokens[5].substr(6,3));
-      break;
-
-    case NMEA_MSG_GPGSA:
-      break;
-    default:
-      break;
+    switch (msg_id) {
+      case NMEA_MSG_GPGAA:
+        Serial.println("Recieved GPGAA:");
+        coordinate.latitude = std::stof(message_tokens[2]);
+        coordinate.longitude = std::stof(message_tokens[3]);
+        time.hours = stoi(message_tokens[1].substr(0, 2));
+        time.minutes = stoi(message_tokens[1].substr(2,2));
+        time.seconds = stoi(message_tokens[1].substr(4,2));
+        time.milliseconds = stoi(message_tokens[1].substr(6,3));
+        break;
+      case NMEA_MSG_GPGLL:
+        coordinate.latitude = std::stof(message_tokens[2]);
+        coordinate.longitude = std::stof(message_tokens[4]);
+        time.hours = stoi(message_tokens[5].substr(0, 2));
+        time.minutes = stoi(message_tokens[5].substr(2,2));
+        time.seconds = stoi(message_tokens[5].substr(4,2));
+        time.milliseconds = stoi(message_tokens[5].substr(6,3));
+        break;
+      case NMEA_MSG_GPGSA:
+        break;
+      default:
+        break;
     }
-
-
-    //Serial.println(input_buffer);
-}
-void MC_GPS::tokenize_message(void){
-  std::istringstream ss(input_buffer);
-  std::string token;
-
-  this->message_tokens.clear();
-
-  while(std::getline(ss, token, ',')){
-    this->message_tokens.push_back(token);
-  }
 }

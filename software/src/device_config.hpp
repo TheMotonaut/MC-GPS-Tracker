@@ -2,6 +2,8 @@
 #ifndef __DEVICE_CONFIG_HPP__
 #define __DEVICE_CONFIG_HPP__
 
+#include <Particle.h>
+
 #define GPS_BAUDRATE      38400
 
 #define DEVICE_VOLTAGE    3.3f

@@ -49,9 +49,6 @@ struct MC_GPS_Signal{
 struct MC_GPS : MC_Component {
     private:
         void process(void);
-        void tokenize_message(void);
-
-        std::vector<std::string> message_tokens;
     public:
         MC_GPS_Coordinate coordinate;
         MC_GPS_Time time;
