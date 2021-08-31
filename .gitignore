@@ -3,3 +3,5 @@ Project*Logs*for*MC*Alarm/
 __Previews/
 software/target/
 .vscode/
+__pycache__/
+*.pyc
