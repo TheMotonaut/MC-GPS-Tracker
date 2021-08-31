@@ -111,7 +111,7 @@ void MC_GPS::process(void) {
       
       this->coordinate.latitude = std::stof(this->message_tokens[2]);
       this->coordinate.longitude = std::stof(this->message_tokens[3]);
-      this->time.hours = stoi(this->message_tokens[1].substr(0, 2));
+      this->time.hours = stoi(this->message_tokens[1].substr(0, 2));    //hhmmss.sss
       this->time.minutes = stoi(this->message_tokens[1].substr(2,2));
       this->time.seconds = stoi(this->message_tokens[1].substr(4,2));
       this->time.milliseconds = stoi(this->message_tokens[1].substr(6,3));
@@ -126,6 +126,8 @@ void MC_GPS::process(void) {
       this->time.milliseconds = stoi(this->message_tokens[5].substr(6,3));
       break;
 
+    case NMEA_MSG_GPGSA:
+      break;
     default:
       break;
     }
