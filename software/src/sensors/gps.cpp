@@ -18,6 +18,14 @@ void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_to
   }
 }
 
+float convertLatitude(std::string latitude){
+  return std::stof(latitude.substr(0,2)) + std::stof(latitude.substr(2,6)/60;     //Converts either longitude or 
+}
+
+float convertLongitude(std::string longitude){
+  return std::stof(longitude.substr(0,3)) + std::stof(longitude.substr(3,6)/60;     //Converts either longitude or 
+}
+
 std::array<std::string, 9> msg_table = {
   "NEVERMATCH",
   "$GPGGA",
@@ -107,24 +115,39 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
 
     switch (msg_id) {
       case NMEA_MSG_GGA:
-        coordinate.latitude = std::stof(message_tokens[2]);
-        coordinate.longitude = std::stof(message_tokens[4]);
+        if(message_tokens[6] != "0"){       //Check if status flag Postion fix indicator is set none zero
+          coordinate.longitude = convertCoord(message_tokens[2]);
+          if(message_tokens[3] == "S") coordinate.longitude = coordinate.longitude * -1;      //Make negative if south
 
-        time.hours = stoi(message_tokens[1].substr(0, 2));
-        time.minutes = stoi(message_tokens[1].substr(2,2));
-        time.seconds = stoi(message_tokens[1].substr(4,2));
-        time.milliseconds = stoi(message_tokens[1].substr(6,3));
+          coordinate.longitude = convertCoord(message_tokens[4]);
+          if(message_tokens[5] == "E") coordinate.latitude = coordinate.latitude * -1;        //Make negative if east
 
+          time.hours = stoi(message_tokens[1].substr(0, 2));
+          time.minutes = stoi(message_tokens[1].substr(2,2));
+          time.seconds = stoi(message_tokens[1].substr(4,2));
+          time.milliseconds = stoi(message_tokens[1].substr(6,3));
+        }
+        else{
+          Serial.println("Fix not available or invalid");
+        }
         break;
+
       case NMEA_MSG_GLL:
-        coordinate.latitude = std::stof(message_tokens[2]);
-        coordinate.longitude = std::stof(message_tokens[4]);
+        if(message_tokens[6] == "A"){       //Check if status flag is set A for valid data
+          coordinate.longitude = convertCoord(message_tokens[1]);
+          if(message_tokens[2] == "S") coordinate.longitude = coordinate.longitude * -1;
 
-        time.hours = stoi(message_tokens[5].substr(0, 2));
-        time.minutes = stoi(message_tokens[5].substr(2,2));
-        time.seconds = stoi(message_tokens[5].substr(4,2));
-        time.milliseconds = stoi(message_tokens[5].substr(6,3));
+          coordinate.longitude = convertCoord(message_tokens[3]);
+          if(message_tokens[4] == "E") coordinate.latitude = coordinate.latitude * -1;
 
+          time.hours = stoi(message_tokens[5].substr(0, 2));
+          time.minutes = stoi(message_tokens[5].substr(2,2));
+          time.seconds = stoi(message_tokens[5].substr(4,2));
+          time.milliseconds = stoi(message_tokens[5].substr(6,3));
+        }
+        else{
+          Serial.println("GLL data not valid");
+        }
         break;
       default:
         break;
