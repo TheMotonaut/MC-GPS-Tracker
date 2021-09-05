@@ -8,14 +8,14 @@
 
 typedef enum {
   NMEA_MSG_EMPTY = 0,
-  NMEA_MSG_GPGAA = 0x1,
-  NMEA_MSG_GPGLL = 0x2,
-  NMEA_MSG_GPGSA = 0x3,
-  NMEA_MSG_GPGSV = 0x4,
-  NMEA_MSG_GPMSS = 0x5,
-  NMEA_MSG_RMC = 0x6,
-  NMEA_MSG_VTG = 0x7,
-  NMEA_MSG_ZDA = 0x8
+  NMEA_MSG_GGA = 0x1, //	Time, position, and fix related data
+  NMEA_MSG_GLL = 0x2, //	Position data: position fix, time of position fix, and status
+  NMEA_MSG_GSA = 0x3, //	GPS DOP and active satellites
+  NMEA_MSG_GSV = 0x4, //	Number of SVs in view, PRN, elevation, azimuth, and SNR
+  NMEA_MSG_MSS = 0x5, 
+  NMEA_MSG_RMC = 0x6,   //  Position, Velocity, and Time
+  NMEA_MSG_VTG = 0x7,   //  Actual track made good and speed over ground
+  NMEA_MSG_ZDA = 0x8    //  UTC day, month, and year, and local time zone offset
 } NMEA_MSG_T;
 
 struct MC_GPS_Coordinate {

@@ -5,3 +5,6 @@ software/target/
 .vscode/
 __pycache__/
 *.pyc
+*.cam
+Project*Outputs*for*MC*Alarm/
+.OutJob

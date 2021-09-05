@@ -93,35 +93,38 @@ void MC_GPS::step(void) {
     input_buffer_offset = end;
 }
 
-void MC_GPS::process(void) {
+void MC_GPS::process(void) {                                  //Process NMEA message
     NMEA_MSG_T msg_id = NMEA_MSG_EMPTY;
     std::vector<std::string> message_tokens;
     tokenizeNMEAMessage(input_buffer, & message_tokens);
+
     for(uint8_t i = 0; i < msg_table.size(); i++) {
       if(message_tokens[0] == msg_table[i]) {
         msg_id = (NMEA_MSG_T)(i);
         break;
       }
     }
+
     switch (msg_id) {
-      case NMEA_MSG_GPGAA:
-        Serial.println("Recieved GPGAA:");
+      case NMEA_MSG_GGA:
         coordinate.latitude = std::stof(message_tokens[2]);
-        coordinate.longitude = std::stof(message_tokens[3]);
+        coordinate.longitude = std::stof(message_tokens[4]);
+
         time.hours = stoi(message_tokens[1].substr(0, 2));
         time.minutes = stoi(message_tokens[1].substr(2,2));
         time.seconds = stoi(message_tokens[1].substr(4,2));
         time.milliseconds = stoi(message_tokens[1].substr(6,3));
+
         break;
-      case NMEA_MSG_GPGLL:
+      case NMEA_MSG_GLL:
         coordinate.latitude = std::stof(message_tokens[2]);
         coordinate.longitude = std::stof(message_tokens[4]);
+
         time.hours = stoi(message_tokens[5].substr(0, 2));
         time.minutes = stoi(message_tokens[5].substr(2,2));
         time.seconds = stoi(message_tokens[5].substr(4,2));
         time.milliseconds = stoi(message_tokens[5].substr(6,3));
-        break;
-      case NMEA_MSG_GPGSA:
+
         break;
       default:
         break;
