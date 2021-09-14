@@ -10,7 +10,12 @@
 #include "peripherals/memory.hpp"
 #include "peripherals/relay.hpp"
 
+#define TURN_OFF_DURATION_MILLI_SECONDS   1000
+
 SYSTEM_MODE(MANUAL);
+
+#define SYSTEM_EVENT_SHUTDOWN     (1 << 0)
+#define SYSTEM_EVENT_ADVERTISE    (1 << 1)
 
 const uint32_t STATE_COLORS[] = {
   0xFFFFFF,                         //White
@@ -42,77 +47,97 @@ std::vector<MC_Component *> components = {
 
 void forceSystemShutdown(void);
 
+void onButtonClickHandler(system_event_t event, int32_t duration, void * ptr);
+
 struct MC_System : MC_Component {
-    public:
-      enum State {
-        BOOTING = 0,
-        SETUP = 1,
-        IDLE = 2,
-        ALARM_WARNING = 3,
-        ALARM_IN_PROGRESS = 4,
-        IN_MOTION = 5,
-        TRACKING = 6,
-        SHUTDOWN = 7,
-      };
-    private:
-      State state;
-      // TODO: This timer is temporary until we have
-      // the Bluetooth controls up and running.
-      Timer timer;
-    public:
-      void updateLights(void) {
-        uint32_t color = 0xFFFFFF;
-        if(state <= sizeof(STATE_COLORS) / sizeof(STATE_COLORS[0])) {
-          color = STATE_COLORS[static_cast<uint32_t>(state)];
-        }
-        RGB.color(color);
+  public:
+    enum State {
+      BOOTING = 0,
+      SETUP = 1,
+      IDLE = 2,
+      ALARM_WARNING = 3,
+      ALARM_IN_PROGRESS = 4,
+      IN_MOTION = 5,
+      TRACKING = 6,
+      SHUTDOWN = 7,
+    };
+  private:
+    State state;
+    uint32_t events;
+  public:
+    void updateLights(void) {
+      uint32_t color = 0xFFFFFF;
+      if(state <= sizeof(STATE_COLORS) / sizeof(STATE_COLORS[0])) {
+        color = STATE_COLORS[static_cast<uint32_t>(state)];
       }
-      bool requestState(State new_state) {
-        state = new_state;
+      RGB.color(color);
+    }
+    bool requestState(State new_state) {
+      state = new_state;
+      updateLights();
+      return true;
+    }
+    MC_System(void) :
+      state(State::BOOTING),
+      events(0) {
+        RGB.control(true);
         updateLights();
-        return true;
+    }
+    ~MC_System(void) {
+    }
+    void postEvent(uint32_t events) {
+      this -> events |= events;
+    }
+    void apply(void (*fnc)(MC_Component * component)) {
+      std::vector<MC_Component *>::iterator iterator = components.begin();
+      while(iterator != components.end()) {
+        MC_Component * component = * (iterator ++);
+        fnc(component);
       }
-      MC_System(void) :
-        state(State::BOOTING),
-        timer(60 * 1000, forceSystemShutdown) {
-          RGB.control(true);
-          updateLights();
-      }
-      ~MC_System(void) {
-      }
-      void apply(void (*fnc)(MC_Component * component)) {
-        std::vector<MC_Component *>::iterator iterator = components.begin();
-        while(iterator != components.end()) {
-          MC_Component * component = * (iterator ++);
-          fnc(component);
+    }
+    void init(void) {
+      SPI.setClockSpeed(1, MHZ);
+      SPI.setDataMode(SPI_MODE0);
+      apply( [](MC_Component * component) { component -> init();} );
+      // -----------------
+      System.on(button_click, onButtonClickHandler);
+    }
+    void shutdown(void) {
+      requestState(State::SHUTDOWN);
+      apply( [](MC_Component * component) { component -> shutdown();} );
+    }
+    void step(void) {
+      if(state == State::SHUTDOWN) {
+        // Lock the system from performing
+        // any action. The system has to be
+        // restarted from an external reset
+        // signal or cut from all of its
+        // power sources.
+      } else {
+        if(events) {
+          if(events & SYSTEM_EVENT_SHUTDOWN) {
+            Serial.println("Shutdown sequence activated.");
+            shutdown();
+          }
+          if(events & SYSTEM_EVENT_ADVERTISE) {
+            Serial.println("Bluetooth advertising for 10 seconds.");
+            bluetooth.setAdvertiseEnabled(true);
+          }
+          events = 0;
         }
+        apply( [](MC_Component * component) { component -> step();} );
       }
-      void init(void) {
-        timer.start();
-        apply( [](MC_Component * component) { component -> init();} );
-      }
-      void shutdown(void) {
-        requestState(State::SHUTDOWN);
-        timer.stop();
-        apply( [](MC_Component * component) { component -> shutdown();} );
-      }
-      void step(void) {
-        if(state == State::SHUTDOWN) {
-          // Lock the system from performing
-          // any action. The system has to be
-          // restarted from an external reset
-          // signal or cut from all of its
-          // power sources.
-        } else {
-          apply( [](MC_Component * component) { component -> step();} );
-        }
-      }
+    }
 };
 
 MC_System mc_system;
 
-void forceSystemShutdown(void) {
-  mc_system.shutdown();
+void onButtonClickHandler(system_event_t event, int32_t duration, void * ptr) {
+  if(duration >= TURN_OFF_DURATION_MILLI_SECONDS) {
+    mc_system.postEvent(SYSTEM_EVENT_SHUTDOWN);
+  } else {
+    mc_system.postEvent(SYSTEM_EVENT_ADVERTISE);
+  }
 }
 
 void setupPins(void) {

@@ -25,9 +25,6 @@ struct MC_Bluetooth : MC_Component {
         BleService status_service;
         BleAdvertisingData advertising_data;
         void setup(void);
-        void setIsEnabled(bool enabled);
-        void setAdvertiseEnabled(bool enabled);
-        bool getAdvertiseEnabled(void) const;
     public:
         MC_Bluetooth(void);
         ~MC_Bluetooth(void);
@@ -35,7 +32,9 @@ struct MC_Bluetooth : MC_Component {
         void shutdown(void);
         void step(void);
         // ---
-
+        void setIsEnabled(bool enabled);
+        void setAdvertiseEnabled(bool enabled);
+        bool getAdvertiseEnabled(void) const;
 };
 
 #endif /* __BLUETOOTH_HPP__ */
