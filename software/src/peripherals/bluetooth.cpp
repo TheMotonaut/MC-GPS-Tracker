@@ -68,6 +68,8 @@ void pairingEvent(const BlePairingEvent & event, void * context) {
         }
             break;
         default:
+            Serial.println("Unexpected Bluetooth event.");
+            delay(1000);
             abort();
     }
 }
@@ -75,27 +77,33 @@ void pairingEvent(const BlePairingEvent & event, void * context) {
 void MC_Bluetooth::setup(void) {
     if(BLE.selectAntenna(BleAntennaType::INTERNAL) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to select bluetooth antenna.");
+        delay(1000);
         abort();
     }
     if(BLE.setTxPower(BE_POWER_MODE) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to set bluetooth tx power.");
+        delay(1000);
         abort();
     }
     if(BLE.setPairingIoCaps(BlePairingIoCaps::DISPLAY_YESNO) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to set bluetooth capabilities.");
+        delay(1000);
         abort();
     }
     if(BLE.setPairingAlgorithm(BlePairingAlgorithm::LESC_ONLY) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to set bluetooth pairing algorithm.");
+        delay(1000);
         abort();
     }
     // We only broadcast the status service.
-    uint32_t advertising_size = advertising_data.appendServiceUUID(
+    uint32_t advertising_size = 0;
+    /*advertising_size += advertising_data.appendServiceUUID(
         status_service.UUID()
-    );
-    advertising_size += advertising_data.appendLocalName("MC Moto");
+    );*/
+    advertising_size += advertising_data.appendLocalName("MC");
     if(advertising_size > BE_MAX_ADVERTISING_BYTES) {
-        Serial.println("Too many advertising bytes.");
+        Serial.printf("Too many advertising bytes (%d).", advertising_size);
+        delay(1000);
         abort();
     }
     // Setup peripheral service advertising.
@@ -106,31 +114,10 @@ void MC_Bluetooth::setup(void) {
         BleAdvertisingEventType::CONNECTABLE_UNDIRECTED
     ) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to set bluetooth advertising parameters.");
+        delay(1000);
         abort();
     }
     BLE.onPairingEvent(pairingEvent, this);
-}
-
-void MC_Bluetooth::setIsEnabled(bool enabled) {
-    if(enabled) {
-        BLE.on();
-        BLE.begin();
-    } else {
-        BLE.end();
-        BLE.off();
-    }
-}
-
-void MC_Bluetooth::setAdvertiseEnabled(bool enabled) {
-    if(enabled) {
-        BLE.advertise();
-    } else {
-        BLE.stopAdvertising();
-    }
-}
-
-bool MC_Bluetooth::getAdvertiseEnabled(void) const {
-    return BLE.advertising();
 }
 
 // --------------------------------------------
@@ -144,19 +131,38 @@ MC_Bluetooth::MC_Bluetooth(void) :
     data_service(""),
     alarm_service(""),
     status_service("") {
-    setIsEnabled(false);
-    setAdvertiseEnabled(false);
-    setup();
 }
 
 MC_Bluetooth::~MC_Bluetooth(void) {
 }
 
 void MC_Bluetooth::init(void) {
+    setIsEnabled(true);
+    setup();
 }
 
 void MC_Bluetooth::shutdown(void) {
 }
 
 void MC_Bluetooth::step(void) {
+}
+
+void MC_Bluetooth::setIsEnabled(bool enabled) {
+    if(enabled) {
+        BLE.on();
+    } else {
+        BLE.off();
+    }
+}
+
+void MC_Bluetooth::setAdvertiseEnabled(bool enabled) {
+    if(enabled) {
+        BLE.advertise(& advertising_data);
+    } else {
+        BLE.stopAdvertising();
+    }
+}
+
+bool MC_Bluetooth::getAdvertiseEnabled(void) const {
+    return BLE.advertising();
 }
