@@ -99,7 +99,7 @@ void MC_GPS::process(void) {
     tokenizeNMEAMessage(input_buffer, & message_tokens);
     for(uint8_t i = 0; i < msg_table.size(); i++) {
       if(message_tokens[0] == msg_table[i]) {
-        msg_id = (NMEA_MSG_T)(i);
+        msg_id = (NMEA_MSG_T)i;
         break;
       }
     }
