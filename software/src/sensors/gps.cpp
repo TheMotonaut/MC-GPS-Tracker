@@ -18,12 +18,12 @@ void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_to
   }
 }
 
-float convertLatitude(std::string latitude){
-  return std::stof(latitude.substr(0,2)) + std::stof(latitude.substr(2,6)/60;     //Converts either longitude or 
+float convertLatitude(std::string * latitude){
+  return std::stof(latitude.substr(0,2)) + std::stof(latitude.substr(2,6)/60;     //Converts either latitude from degrees minutes (string)[ddmm.mmmm] to degrees decimal (float) 
 }
 
 float convertLongitude(std::string longitude){
-  return std::stof(longitude.substr(0,3)) + std::stof(longitude.substr(3,6)/60;     //Converts either longitude or 
+  return std::stof(longitude.substr(0,3)) + std::stof(longitude.substr(3,6)/60;     //Converts longitude from degrees minutes(string)[dddmm.mmmm] to degrees decimal (float)
 }
 
 std::array<std::string, 9> msg_table = {
@@ -38,7 +38,7 @@ std::array<std::string, 9> msg_table = {
   "$GPZDA"
 };
 
-void gpsPulse(void) {
+void gpsPulse(void) {             //Pulse GPS for toogling on/off
   digitalWrite(PIN_GPS_ON, LOW);
   delay(200);
   digitalWrite(PIN_GPS_ON, HIGH);
@@ -116,11 +116,11 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
     switch (msg_id) {
       case NMEA_MSG_GGA:
         if(message_tokens[6] != "0"){       //Check if status flag Postion fix indicator is set none zero
-          coordinate.longitude = convertCoord(message_tokens[2]);
-          if(message_tokens[3] == "S") coordinate.longitude = coordinate.longitude * -1;      //Make negative if south
+          coordinate.longitude = convertCoord(& message_tokens[2]);
+          if(message_tokens[3] == "S") coordinate.longitude = coordinate.longitude * -1;     //Make negative if south
 
-          coordinate.longitude = convertCoord(message_tokens[4]);
-          if(message_tokens[5] == "E") coordinate.latitude = coordinate.latitude * -1;        //Make negative if east
+          coordinate.longitude = convertCoord(& message_tokens[4]);
+          if(message_tokens[5] == "E") coordinate.latitude = coordinate.latitude * -1;       //Make negative if east
 
           time.hours = stoi(message_tokens[1].substr(0, 2));
           time.minutes = stoi(message_tokens[1].substr(2,2));
@@ -134,11 +134,11 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
 
       case NMEA_MSG_GLL:
         if(message_tokens[6] == "A"){       //Check if status flag is set A for valid data
-          coordinate.longitude = convertCoord(message_tokens[1]);
-          if(message_tokens[2] == "S") coordinate.longitude = coordinate.longitude * -1;
+          coordinate.longitude = convertCoord(& message_tokens[1]);
+          if(message_tokens[2] == "S") coordinate.longitude = coordinate.longitude * -1;    //Make negative if south
 
-          coordinate.longitude = convertCoord(message_tokens[3]);
-          if(message_tokens[4] == "E") coordinate.latitude = coordinate.latitude * -1;
+          coordinate.longitude = convertCoord(& message_tokens[3]);
+          if(message_tokens[4] == "E") coordinate.latitude = coordinate.latitude * -1;      //Make negative if east
 
           time.hours = stoi(message_tokens[5].substr(0, 2));
           time.minutes = stoi(message_tokens[5].substr(2,2));
