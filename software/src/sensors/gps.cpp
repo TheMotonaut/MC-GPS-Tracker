@@ -18,6 +18,14 @@ void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_to
   }
 }
 
+float convertLatitude(std::string * latitude){
+  return std::stof(latitude.substr(0,2)) + std::stof(latitude.substr(2,6)/60;     //Converts either latitude from degrees minutes (string)[ddmm.mmmm] to degrees decimal (float) 
+}
+
+float convertLongitude(std::string longitude){
+  return std::stof(longitude.substr(0,3)) + std::stof(longitude.substr(3,6)/60;     //Converts longitude from degrees minutes(string)[dddmm.mmmm] to degrees decimal (float)
+}
+
 std::array<std::string, 9> msg_table = {
   "NEVERMATCH",
   "$GPGGA",
@@ -30,7 +38,7 @@ std::array<std::string, 9> msg_table = {
   "$GPZDA"
 };
 
-void gpsPulse(void) {
+void gpsPulse(void) {             //Pulse GPS for toogling on/off
   digitalWrite(PIN_GPS_ON, LOW);
   delay(200);
   digitalWrite(PIN_GPS_ON, HIGH);
@@ -93,35 +101,53 @@ void MC_GPS::step(void) {
     input_buffer_offset = end;
 }
 
-void MC_GPS::process(void) {
+void MC_GPS::process(void) {                                  //Process NMEA message
     NMEA_MSG_T msg_id = NMEA_MSG_EMPTY;
     std::vector<std::string> message_tokens;
     tokenizeNMEAMessage(input_buffer, & message_tokens);
+
     for(uint8_t i = 0; i < msg_table.size(); i++) {
       if(message_tokens[0] == msg_table[i]) {
         msg_id = (NMEA_MSG_T)i;
         break;
       }
     }
+
     switch (msg_id) {
-      case NMEA_MSG_GPGAA:
-        Serial.println("Recieved GPGAA:");
-        coordinate.latitude = std::stof(message_tokens[2]);
-        coordinate.longitude = std::stof(message_tokens[3]);
-        time.hours = stoi(message_tokens[1].substr(0, 2));
-        time.minutes = stoi(message_tokens[1].substr(2,2));
-        time.seconds = stoi(message_tokens[1].substr(4,2));
-        time.milliseconds = stoi(message_tokens[1].substr(6,3));
+      case NMEA_MSG_GGA:
+        if(message_tokens[6] != "0"){       //Check if status flag Postion fix indicator is set none zero
+          coordinate.longitude = convertCoord(& message_tokens[2]);
+          if(message_tokens[3] == "S") coordinate.longitude = coordinate.longitude * -1;     //Make negative if south
+
+          coordinate.longitude = convertCoord(& message_tokens[4]);
+          if(message_tokens[5] == "E") coordinate.latitude = coordinate.latitude * -1;       //Make negative if east
+
+          time.hours = stoi(message_tokens[1].substr(0, 2));
+          time.minutes = stoi(message_tokens[1].substr(2,2));
+          time.seconds = stoi(message_tokens[1].substr(4,2));
+          time.milliseconds = stoi(message_tokens[1].substr(6,3));
+        }
+        else{
+          Serial.println("Fix not available or invalid");
+        }
         break;
-      case NMEA_MSG_GPGLL:
-        coordinate.latitude = std::stof(message_tokens[2]);
-        coordinate.longitude = std::stof(message_tokens[4]);
-        time.hours = stoi(message_tokens[5].substr(0, 2));
-        time.minutes = stoi(message_tokens[5].substr(2,2));
-        time.seconds = stoi(message_tokens[5].substr(4,2));
-        time.milliseconds = stoi(message_tokens[5].substr(6,3));
-        break;
-      case NMEA_MSG_GPGSA:
+
+      case NMEA_MSG_GLL:
+        if(message_tokens[6] == "A"){       //Check if status flag is set A for valid data
+          coordinate.longitude = convertCoord(& message_tokens[1]);
+          if(message_tokens[2] == "S") coordinate.longitude = coordinate.longitude * -1;    //Make negative if south
+
+          coordinate.longitude = convertCoord(& message_tokens[3]);
+          if(message_tokens[4] == "E") coordinate.latitude = coordinate.latitude * -1;      //Make negative if east
+
+          time.hours = stoi(message_tokens[5].substr(0, 2));
+          time.minutes = stoi(message_tokens[5].substr(2,2));
+          time.seconds = stoi(message_tokens[5].substr(4,2));
+          time.milliseconds = stoi(message_tokens[5].substr(6,3));
+        }
+        else{
+          Serial.println("GLL data not valid");
+        }
         break;
       default:
         break;
