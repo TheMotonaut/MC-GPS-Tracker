@@ -74,7 +74,7 @@ struct MC_System : MC_Component {
       }
       MC_System(void) :
         state(State::BOOTING),
-        timer(60 * 1000, forceSystemShutdown) {
+        timer(2 * 60 * 1000, forceSystemShutdown) {
           RGB.control(true);
           updateLights();
       }
