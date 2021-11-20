@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">MonkeydoGPSAlarm</string>
+    <string name="phone_number">Phone number</string>
+    <string name="login">Login</string>
+    <string name="scan">Scan</string>
+    <string name="scan_instructions">Run an Bluetooth scan and choose a compatible and paired MotoGPS device.</string>
+</resources>
