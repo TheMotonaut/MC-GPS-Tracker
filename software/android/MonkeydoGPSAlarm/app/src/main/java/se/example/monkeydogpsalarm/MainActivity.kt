@@ -1,5 +1,9 @@
 package se.example.monkeydogpsalarm
 
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -17,6 +21,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
     private var requestedPermissionIndex: Int = 0
     private var failedPermissionIndex: Int = 0
+
+    private lateinit var adapter: BluetoothAdapter
 
     private val neededPermissions = arrayOf(
         PermissionRequestItem(
@@ -75,10 +81,18 @@ class MainActivity : AppCompatActivity() {
                     else
                         PermissionRequestStatus.DECLINED
                 requestedPermissionIndex += 1
-                processPermissions()
+                if(processPermissions()) {
+                    postPermissionCheck()
+                }
             }
+        // Open a bluetooth adater.
+        if(openBluetooth()) {
+            processBluetooth()
+        }
         // Start testing for permissions.
-        processPermissions()
+        if(processPermissions()) {
+            postPermissionCheck()
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -86,6 +100,42 @@ class MainActivity : AppCompatActivity() {
         val decorView: View = window.decorView;
         val uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN
         decorView.systemUiVisibility = uiOptions
+    }
+
+    private fun postPermissionCheck() {
+        Log.d(LogConstants.PERMISSION, "Finished looking for permissions")
+    }
+
+    private fun openBluetooth(): Boolean {
+        val manager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
+        if(manager != null && manager.adapter != null) {
+            adapter = manager.adapter
+            return true
+        } else {
+            Log.e(LogConstants.BLUETOOTH, "Failed to get bluetooth manager.")
+            return false
+        }
+    }
+
+    private fun processBluetooth() {
+        val devices = adapter.bondedDevices
+        val compatibleDevice = mutableListOf<BluetoothDevice>()
+        for(device in devices) {
+            if(device.bondState == BluetoothDevice.BOND_BONDED) {
+                Log.d(LogConstants.BLUETOOTH, "Device (${device.name}) at (${device.address}) with Uuids:")
+                for((index, uuid) in device.uuids.withIndex()) {
+                    Log.d(LogConstants.BLUETOOTH, "UUID (${device.name}) ($index) uuids: ${uuid.uuid.toString()}")
+                }
+                if(device.uuids.contains(ServiceUUID.MONKEY_DO_GPS_UUID)) {
+                    compatibleDevice.add(device)
+                }
+            }
+        }
+        if(compatibleDevice.size > 0) {
+            Log.d(LogConstants.BLUETOOTH, "Compatible device: ${compatibleDevice.get(0).name}!")
+        } else {
+            Log.e(LogConstants.BLUETOOTH, "No compatible devices found.")
+        }
     }
 
     private fun processPermissions(): Boolean {
