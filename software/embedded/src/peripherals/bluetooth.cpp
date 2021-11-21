@@ -1,11 +1,18 @@
 
 #include "bluetooth.hpp"
 
-#define BE_POWER_MODE               (-20) // The lowest power mode.
-#define BE_MAX_ADVERTISING_BYTES    (31) // From bluetooth specifications.
+#define BE_POWER_MODE                       (-20) // The lowest power mode.
+#define BE_MAX_ADVERTISING_BYTES            (31) // From bluetooth specifications.
 
-#define BE_ADVERTISING_INTERVAL     (3200) // Corresponds to 2 seconds.
-#define BE_ADVERTISING_TIMEOUT      (1000) // Corresponds to 10 seconds.
+#define BE_ADVERTISING_INTERVAL             (3200) // Corresponds to 2 seconds.
+#define BE_ADVERTISING_TIMEOUT              (1000) // Corresponds to 10 seconds.
+
+#define BE_GSP_SERVICE_UUID                 "1fc3a01b-fe36-4f6d-893e-bc000649be98"
+#define BE_DATA_SERVICE_UUID                "30df747a-5921-40c0-8534-8dca5e89b35b"
+#define BE_ALARM_SERVICE_UUID               "9882ec2c-380f-4574-810b-6a68b67e8fca"
+#define BE_STATUS_SERVICE_UUID              "867419fb-5837-4e0e-9c96-a6010feb5e2a"
+
+#define BE_GPS_COORD_CHARACTERISTIC_UUID    "72047b8d-3c2b-4e18-ac20-9e57f2532022"
 
 void pairingEvent(const BlePairingEvent & event, void * context) {
     MC_Bluetooth * mc_ble = reinterpret_cast<MC_Bluetooth *>(context);
@@ -95,6 +102,8 @@ void MC_Bluetooth::setup(void) {
         delay(1000);
         abort();
     }
+    // Add the characteristics.
+    BLE.addCharacteristic(gps_coordinate_characteristic);
     // We only broadcast the status service.
     uint32_t advertising_size = 0;
     /*advertising_size += advertising_data.appendServiceUUID(
@@ -124,13 +133,22 @@ void MC_Bluetooth::setup(void) {
 // Public functions.
 // --------------------------------------------
 
+const BleUuid GPS_SERVICE_UUID(BE_GSP_SERVICE_UUID);
+const BleUuid GPS_COORD_UUID(BE_GPS_COORD_CHARACTERISTIC_UUID);
+
 MC_Bluetooth::MC_Bluetooth(void) :
     events(0),
     accept_connetions(true),
-    gps_service(""),
-    data_service(""),
-    alarm_service(""),
-    status_service("") {
+    gps_service(BE_GSP_SERVICE_UUID),
+    data_service(BE_DATA_SERVICE_UUID),
+    alarm_service(BE_ALARM_SERVICE_UUID),
+    status_service(BE_STATUS_SERVICE_UUID),
+    gps_coordinate_characteristic(
+        "coord",
+        BleCharacteristicProperty::NOTIFY,
+        GPS_COORD_UUID,
+        GPS_SERVICE_UUID
+    ) {
 }
 
 MC_Bluetooth::~MC_Bluetooth(void) {

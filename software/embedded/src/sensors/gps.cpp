@@ -19,19 +19,14 @@ void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_to
   }
 }
 
-float convertLatitude(std::string latitude){
-  std::string dd = latitude.substr(0,2);
-  std::string mm_mmm = latitude.substr(2, 7);
-
-  return std::stof(dd) + std::stof(mm_mmm)/60.0f; //Converts either latitude from degrees minutes (string)[ddmm.mmmm] to degrees decimal (float) 
+float convertLatitude(std::string * latitude){
+  //Converts either latitude from degrees minutes (string)[ddmm.mmmm] to degrees decimal (float) 
+  return std::stof(latitude -> substr(0,2)) + std::stof(latitude -> substr(2,6))/60.0f;
 }
 
-float convertLongitude(std::string longitude){
-  std::string ddd = longitude.substr(0,3);
-  std::string mm_mmm = longitude.substr(3, 7);
+float convertLongitude(std::string * longitude){
   //Converts longitude from degrees minutes(string)[dddmm.mmmm] to degrees decimal (float)
-
-  return std::stof(ddd) + std::stof(mm_mmm)/60.0f;
+  return std::stof(longitude -> substr(0,3)) + std::stof(longitude -> substr(3,6))/60.0f;
 }
 
 std::array<std::string, 9> msg_table = {
