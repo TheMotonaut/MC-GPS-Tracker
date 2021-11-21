@@ -74,7 +74,7 @@ struct MC_System : MC_Component {
       }
       MC_System(void) :
         state(State::BOOTING),
-        timer(2 * 60 * 1000, forceSystemShutdown) {
+        timer(60 * 1000, forceSystemShutdown) {
           RGB.control(true);
           updateLights();
       }
@@ -89,8 +89,6 @@ struct MC_System : MC_Component {
       }
       void init(void) {
         timer.start();
-        SPI.setClockSpeed(1, MHZ);
-        SPI.setDataMode(SPI_MODE0);
         apply( [](MC_Component * component) { component -> init();} );
       }
       void shutdown(void) {

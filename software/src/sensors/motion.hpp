@@ -10,6 +10,9 @@ struct MC_Vector {
         float x;
         float y;
         float z;
+        float rotX;
+        float rotY;
+        float rotZ;
         MC_Vector(void);
 };
 
@@ -25,6 +28,7 @@ struct MC_Motion : MC_Component {
         void process(void);
     public:
         MC_Transform transform;
+        MC_Vector vector;
         // ---
         MC_Motion(void);
         ~MC_Motion(void);

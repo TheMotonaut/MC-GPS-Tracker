@@ -1,4 +1,3 @@
-
 #include <Particle.h>
 #include <iostream>
 #include <sstream>
@@ -8,6 +7,8 @@
 
 MC_GPS_Coordinate::MC_GPS_Coordinate(void) {}
 MC_GPS_Time::MC_GPS_Time(void) {}
+
+int state = 0;
 
 void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_tokens){
   std::istringstream ss(msg);
@@ -114,7 +115,7 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
     tokenizeNMEAMessage(input_buffer, & message_tokens);
 
     for(uint8_t i = 0; i < msg_table.size(); i++) {
-      if(message_tokens[0] == msg_ta ble[i]) {
+      if(message_tokens[0] == msg_table[i]) {
         msg_id = (NMEA_MSG_T)i;
         break;
       }
@@ -122,7 +123,6 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
 
     switch (msg_id) {
       case NMEA_MSG_GGA:
-        Serial.println("Recieved GGA");
         if(message_tokens.size() == 10 && message_tokens[6].compare("0") == 0){       //Check size of message and Check if status flag Postion fix indicator is set none zero
           Serial.println("Hej");
           coordinate.longitude = convertLatitude(message_tokens[2]);
@@ -144,7 +144,6 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
         break;
 
       case NMEA_MSG_GLL:
-        Serial.println("Recieved GLL");
         if(message_tokens[6].compare("A") == 0){       //Check if status flag is set A for valid data
           coordinate.latitude = convertLatitude(message_tokens[1]);
           if(message_tokens[2].compare("S") == 0) coordinate.latitude = coordinate.latitude * -1.0f;    //Make negative if south
@@ -163,7 +162,6 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
         break;
 
       case NMEA_MSG_RMC:
-        Serial.println("Recieved RMC");
         if(message_tokens.size() >= 9 && message_tokens[2].compare("A") == 0){
           coordinate.latitude = convertLatitude(message_tokens[3]);
           if(message_tokens[4].compare("S") == 0) coordinate.latitude = coordinate.latitude * -1.0f;    //Make negative if south
@@ -171,7 +169,7 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
           coordinate.longitude = convertLongitude(message_tokens[5]);
           if(message_tokens[6].compare("W") == 0) coordinate.longitude = coordinate.longitude * -1.0f;      //Make negative if east
 
-          time.hours = stoi(message_tokens[1].substr(0, 2));
+          time.hours = stoi(message_tokens[1].substr(0, 2));      //hhmmss.www
           time.minutes = stoi(message_tokens[1].substr(2,2));
           time.seconds = stoi(message_tokens[1].substr(4,2));
           time.milliseconds = stoi(message_tokens[1].substr(7,3));

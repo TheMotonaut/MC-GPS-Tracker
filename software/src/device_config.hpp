@@ -10,8 +10,10 @@
 
 #define PIN_GPS_ON        (D2)
 #define PIN_GPS_nRST      (A4)
+#define PIN_GPS_1PPS      (A5)
 
 #define PIN_HORN          (D6)
+#define Batt_meas         (A3)
 
 #define PIN_nCS_SD        (D8)
 
