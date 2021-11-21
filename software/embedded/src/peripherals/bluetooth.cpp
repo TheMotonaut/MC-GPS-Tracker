@@ -1,10 +1,10 @@
 
 #include "bluetooth.hpp"
 
-#define BE_POWER_MODE                       (-20) // The lowest power mode.
+#define BE_POWER_MODE                       8 // (-20) // The lowest power mode.
 #define BE_MAX_ADVERTISING_BYTES            (31) // From bluetooth specifications.
 
-#define BE_ADVERTISING_INTERVAL             (3200) // Corresponds to 2 seconds.
+#define BE_ADVERTISING_INTERVAL             (160) // (3200) // Corresponds to 2 seconds.
 #define BE_ADVERTISING_TIMEOUT              (1000) // Corresponds to 10 seconds.
 
 #define BE_GSP_SERVICE_UUID                 "1fc3a01b-fe36-4f6d-893e-bc000649be98"
@@ -19,6 +19,7 @@ void pairingEvent(const BlePairingEvent & event, void * context) {
     switch(event.type) {
         case BlePairingEventType::REQUEST_RECEIVED:
         {
+            Serial.printf("BLE Request.\n");
             if(! mc_ble -> accept_connetions) {
                 BLE.rejectPairing(event.peer);
             }
@@ -26,16 +27,21 @@ void pairingEvent(const BlePairingEvent & event, void * context) {
             break;
         case BlePairingEventType::NUMERIC_COMPARISON:
         {
+            Serial.printf("BLE Numeric comparison.\n");
             // TODO: We need to look for a button event to confirm that we are indeed
             // looking at the same numerics. But for now, since we are only allowing
             // connections within the timeframe of 10s we will just accept it.
-            BLE.setPairingNumericComparison(event.peer, true);
+            Serial.printf("BLE Passkey: %.*s\n", BLE_PAIRING_PASSKEY_LEN, event.payload.passkey);
+            if(BLE.setPairingNumericComparison(event.peer, true) != SYSTEM_ERROR_NONE) {
+                Serial.println("Failed to validate passkey.");
+            }
         }
             break;
         case BlePairingEventType::PASSKEY_DISPLAY:
         {
+            Serial.printf("BLE Display passkey.\n");
             if(Serial.isConnected() && Serial.isEnabled()) {
-                Serial.printf("Bluetooth Passkey: %.*s",
+                Serial.printf("Bluetooth Passkey: %.*s\n",
                     BLE_PAIRING_PASSKEY_LEN,
                     event.payload.passkey
                 );
@@ -46,6 +52,7 @@ void pairingEvent(const BlePairingEvent & event, void * context) {
             break;
         case BlePairingEventType::PASSKEY_INPUT:
         {
+            Serial.printf("BLE Input passkey.\n");
             uint32_t index = 0;
             uint8_t passkey[BLE_PAIRING_PASSKEY_LEN];
             if(Serial.isConnected() && Serial.isEnabled()) {
@@ -82,6 +89,7 @@ void pairingEvent(const BlePairingEvent & event, void * context) {
 }
 
 void MC_Bluetooth::setup(void) {
+    Serial.println("BLE Setup");
     if(BLE.selectAntenna(BleAntennaType::INTERNAL) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to select bluetooth antenna.");
         delay(1000);
@@ -102,12 +110,10 @@ void MC_Bluetooth::setup(void) {
         delay(1000);
         abort();
     }
-    // Add the characteristics.
-    BLE.addCharacteristic(gps_coordinate_characteristic);
     // We only broadcast the status service.
     uint32_t advertising_size = 0;
     /*advertising_size += advertising_data.appendServiceUUID(
-        status_service.UUID()
+        gps_service.UUID()
     );*/
     advertising_size += advertising_data.appendLocalName("MC");
     if(advertising_size > BE_MAX_ADVERTISING_BYTES) {
@@ -120,7 +126,7 @@ void MC_Bluetooth::setup(void) {
         BE_ADVERTISING_INTERVAL,
         BE_ADVERTISING_TIMEOUT,
         // Note: We do not currently allow for scanning the device.
-        BleAdvertisingEventType::CONNECTABLE_UNDIRECTED
+        (BleAdvertisingEventType) 0 // BleAdvertisingEventType::CONNECTABLE_SCANNABLE_UNDIRECTED
     ) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to set bluetooth advertising parameters.");
         delay(1000);
@@ -147,25 +153,36 @@ MC_Bluetooth::MC_Bluetooth(void) :
         "coord",
         BleCharacteristicProperty::NOTIFY,
         GPS_COORD_UUID,
-        GPS_SERVICE_UUID
+        gps_service.UUID()
     ) {
+    // Add the characteristics.
+    BLE.addCharacteristic(gps_coordinate_characteristic);
 }
 
 MC_Bluetooth::~MC_Bluetooth(void) {
 }
 
+uint8_t GPS_COORD_BUFFER[4];
+uint32_t incer;
+
 void MC_Bluetooth::init(void) {
+    incer = 0;
+    Serial.println("BLE Init");
     setIsEnabled(true);
     setup();
 }
 
 void MC_Bluetooth::shutdown(void) {
+    Serial.println("BLE Shutdown");
 }
 
 void MC_Bluetooth::step(void) {
+    * ((uint32_t *) GPS_COORD_BUFFER) = incer ++;
+    gps_coordinate_characteristic.setValue(GPS_COORD_BUFFER, sizeof(GPS_COORD_BUFFER));
 }
 
 void MC_Bluetooth::setIsEnabled(bool enabled) {
+    Serial.printf("BLE Enabled (%s)\n", enabled ? "yes" : "no");
     if(enabled) {
         BLE.on();
     } else {
@@ -174,6 +191,7 @@ void MC_Bluetooth::setIsEnabled(bool enabled) {
 }
 
 void MC_Bluetooth::setAdvertiseEnabled(bool enabled) {
+    Serial.printf("BLE Advertise (%s)\n", enabled ? "yes" : "no");
     if(enabled) {
         BLE.advertise(& advertising_data);
     } else {

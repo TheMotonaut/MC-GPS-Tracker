@@ -120,10 +120,10 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
       case NMEA_MSG_GGA:
         if(message_tokens.size() == 10 && message_tokens[6].compare("0") == 0){       //Check size of message and Check if status flag Postion fix indicator is set none zero
           Serial.println("Hej");
-          coordinate.longitude = convertLatitude(message_tokens[2]);
+          coordinate.longitude = convertLatitude(& message_tokens[2]);
           if(message_tokens[3].compare("S") == 0) coordinate.longitude = coordinate.longitude * -1.0f;     //Make negative if south
 
-          coordinate.longitude = convertLongitude(message_tokens[4]);
+          coordinate.longitude = convertLongitude(& message_tokens[4]);
           if(message_tokens[5].compare("W") == 0) coordinate.latitude = coordinate.latitude * -1.0f;       //Make negative if east
 
           time.hours = stoi(message_tokens[1].substr(0, 2));
@@ -140,10 +140,10 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
 
       case NMEA_MSG_GLL:
         if(message_tokens[6].compare("A") == 0){       //Check if status flag is set A for valid data
-          coordinate.latitude = convertLatitude(message_tokens[1]);
+          coordinate.latitude = convertLatitude(& message_tokens[1]);
           if(message_tokens[2].compare("S") == 0) coordinate.latitude = coordinate.latitude * -1.0f;    //Make negative if south
 
-          coordinate.longitude = convertLongitude(message_tokens[3]);
+          coordinate.longitude = convertLongitude(& message_tokens[3]);
           if(message_tokens[4].compare("W") == 0) coordinate.longitude = coordinate.longitude * -1.0f;      //Make negative if east
 
           time.hours = stoi(message_tokens[5].substr(0, 2));
@@ -158,10 +158,10 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
 
       case NMEA_MSG_RMC:
         if(message_tokens.size() >= 9 && message_tokens[2].compare("A") == 0){
-          coordinate.latitude = convertLatitude(message_tokens[3]);
+          coordinate.latitude = convertLatitude(& message_tokens[3]);
           if(message_tokens[4].compare("S") == 0) coordinate.latitude = coordinate.latitude * -1.0f;    //Make negative if south
 
-          coordinate.longitude = convertLongitude(message_tokens[5]);
+          coordinate.longitude = convertLongitude(& message_tokens[5]);
           if(message_tokens[6].compare("W") == 0) coordinate.longitude = coordinate.longitude * -1.0f;      //Make negative if east
 
           time.hours = stoi(message_tokens[1].substr(0, 2));      //hhmmss.www
