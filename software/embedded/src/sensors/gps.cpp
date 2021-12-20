@@ -68,7 +68,6 @@ void shutdownGPS(void) {
 // ----------------------------
 
 MC_GPS::MC_GPS(void) {
-    MC_GPS_Coordinate MC_GPS_Coordinate;
     input_buffer_offset = 0;
 }
 
@@ -150,7 +149,7 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
           time.milliseconds = stoi(message_tokens[5].substr(7,3));
         }
         else{
-          Serial.println("GLL data not valid");
+          //Serial.println("GLL data not valid");
         }
         break;
 
@@ -170,7 +169,7 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
           Serial.printlnf("Latitude: %f", coordinate.latitude);
           Serial.printlnf("Latitude %f", coordinate.longitude);
         }else{
-          Serial.println("RMC data not valid");
+          //Serial.println("RMC data not valid");
         }
 
         break;

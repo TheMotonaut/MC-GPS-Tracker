@@ -20,6 +20,8 @@ struct MC_Relay : MC_Component {
         // ---
         RelayState getState(void);
         void setState(RelayState state);
+        void alarmOn(void);
+        void alarmOff(void);
 };
 
 #endif /* __RELAY_HPP__ */

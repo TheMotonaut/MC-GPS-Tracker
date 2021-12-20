@@ -4,6 +4,7 @@
 
 #include <Particle.h>
 #include "component.hpp"
+#include "../device_config.hpp"
 
 struct MC_Vector {
     public:
@@ -35,6 +36,8 @@ struct MC_Motion : MC_Component {
         void init(void);
         void shutdown(void);
         void step(void);
+        void retrieveMotionData(void);
+        void toogleWOM(void);
 };
 
 #endif /* __MOTION_HPP__ */
