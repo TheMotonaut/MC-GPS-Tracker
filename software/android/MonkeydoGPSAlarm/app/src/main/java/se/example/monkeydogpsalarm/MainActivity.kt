@@ -1,28 +1,96 @@
 package se.example.monkeydogpsalarm
 
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothManager
+import android.bluetooth.*
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import androidx.recyclerview.widget.RecyclerView
+import se.example.monkeydogpsalarm.data.BluetoothScanItem
 import se.example.monkeydogpsalarm.data.PermissionRequestItem
 import se.example.monkeydogpsalarm.data.PermissionRequestStatus
+import se.example.monkeydogpsalarm.viewmodels.LoginViewModel
+import se.example.monkeydogpsalarm.viewmodels.ScanViewModel
 
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var model: ScanViewModel
+    private lateinit var scanRecyclerView: RecyclerView
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
     private var requestedPermissionIndex: Int = 0
     private var failedPermissionIndex: Int = 0
 
+    private var currentGatt: BluetoothGatt? = null
+
     private lateinit var adapter: BluetoothAdapter
+
+    private val gattCallback = object : BluetoothGattCallback() {
+        override fun onConnectionStateChange(
+            gatt: BluetoothGatt?,
+            status: Int,
+            newState: Int
+        ) {
+            super.onConnectionStateChange(gatt, status, newState)
+            when (newState) {
+                // TODO: Give some user feedback when the
+                // device state changes.
+                BluetoothGatt.STATE_CONNECTING -> Unit
+                BluetoothGatt.STATE_CONNECTED -> Unit
+                BluetoothGatt.STATE_DISCONNECTING -> Unit
+                BluetoothGatt.STATE_DISCONNECTED -> Unit
+            }
+        }
+
+        override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            super.onCharacteristicRead(gatt, characteristic, status)
+            // TODO: Implement!
+        }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            super.onCharacteristicWrite(gatt, characteristic, status)
+            // TODO: Implement!
+        }
+
+        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+            super.onServicesDiscovered(gatt, status)
+            // TODO: Implement!
+        }
+
+        override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
+            super.onReadRemoteRssi(gatt, rssi, status)
+            // TODO: Implement so that the user knows about the signal strength!
+        }
+
+        override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+            super.onMtuChanged(gatt, mtu, status)
+            // TODO: Might need to limit the data rate if this says so.
+        }
+
+        override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
+            super.onCharacteristicChanged(gatt, characteristic)
+            // TODO: The device says it has new data, so read it.
+        }
+    }
+
+    class ScanItemViewHolder(view: View): RecyclerView.ViewHolder(view) {
+        val nameField: TextView
+        val selectButton: Button
+        init {
+            nameField = view.findViewById(R.id.name)
+            selectButton = view.findViewById(R.id.select_button)
+        }
+    }
 
     private val neededPermissions = arrayOf(
         PermissionRequestItem(
@@ -57,6 +125,43 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val scanViewModel: ScanViewModel by viewModels()
+        model = scanViewModel
+
+        scanRecyclerView = findViewById<RecyclerView>(R.id.recyclerView)
+
+        model.getScanItemsMutable().observe(this) {
+            // Force reload the recycler view once
+            // we have recieved some scanned bluetooth
+            // devices to show.
+            scanRecyclerView.invalidate()
+        }
+
+        scanRecyclerView.adapter = object : RecyclerView.Adapter<ScanItemViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ScanItemViewHolder {
+                val view: View = LayoutInflater.from(
+                    parent.context
+                ).inflate(
+                    R.layout.bluetooth_list_item,
+                    parent,
+                    false
+                )
+                return ScanItemViewHolder(view)
+            }
+
+            override fun onBindViewHolder(holder: ScanItemViewHolder, position: Int) {
+                val item = model.scanItems[position]
+                holder.nameField.text = item.name
+                holder.selectButton.setOnClickListener {
+                    selectScanItem(item)
+                }
+            }
+
+            override fun getItemCount() = model.scanItems.size
+
+        };
+
         // Setup a standard permission request and response handler.
         requestPermissionLauncher =
             registerForActivityResult(
@@ -133,6 +238,14 @@ class MainActivity : AppCompatActivity() {
         }
         if(compatibleDevice.size > 0) {
             Log.d(LogConstants.BLUETOOTH, "Compatible device: ${compatibleDevice.get(0).name}!")
+            model.scanItems = compatibleDevice.map {
+                BluetoothScanItem(
+                        it.name,
+                        it.address,
+                        true,
+                        it
+                )
+            }.toTypedArray()
         } else {
             Log.e(LogConstants.BLUETOOTH, "No compatible devices found.")
         }
@@ -174,5 +287,13 @@ class MainActivity : AppCompatActivity() {
             requestedPermissionIndex += 1
         }
         return true
+    }
+
+    private fun selectScanItem(item: BluetoothScanItem) {
+        currentGatt = item.bleDevice.connectGatt(
+                this,
+                true,
+                gattCallback
+        )
     }
 }
