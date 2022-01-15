@@ -16,12 +16,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import se.example.monkeydogpsalarm.data.BluetoothScanItem
 import se.example.monkeydogpsalarm.data.PermissionRequestItem
 import se.example.monkeydogpsalarm.data.PermissionRequestStatus
-import se.example.monkeydogpsalarm.viewmodels.LoginViewModel
 import se.example.monkeydogpsalarm.viewmodels.ScanViewModel
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -37,27 +38,44 @@ class MainActivity : AppCompatActivity() {
 
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(
-            gatt: BluetoothGatt?,
-            status: Int,
-            newState: Int
+                gatt: BluetoothGatt?,
+                status: Int,
+                newState: Int
         ) {
             super.onConnectionStateChange(gatt, status, newState)
             when (newState) {
                 // TODO: Give some user feedback when the
                 // device state changes.
-                BluetoothGatt.STATE_CONNECTING -> Unit
-                BluetoothGatt.STATE_CONNECTED -> Unit
-                BluetoothGatt.STATE_DISCONNECTING -> Unit
-                BluetoothGatt.STATE_DISCONNECTED -> Unit
+                BluetoothGatt.STATE_CONNECTING -> Log.d("GPS-GATT", "Connecting ${gatt?.device}");
+                BluetoothGatt.STATE_CONNECTED -> {
+                    Log.d("GPS-GATT", "Connected ${gatt?.device}")
+                    gatt?.connect()
+                    gatt?.discoverServices()
+                }
+                BluetoothGatt.STATE_DISCONNECTING -> Log.d("GPS-GATT", "Disconnecting ${gatt?.device}");
+                BluetoothGatt.STATE_DISCONNECTED -> Log.d("GPS-GATT", "Disconnected ${gatt?.device}");
             }
         }
 
-        override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+        override fun onCharacteristicRead(
+                gatt: BluetoothGatt?,
+                characteristic: BluetoothGattCharacteristic?,
+                status: Int
+        ) {
             super.onCharacteristicRead(gatt, characteristic, status)
             // TODO: Implement!
+            var value = 0
+            characteristic?.value?.forEachIndexed { byte, index ->
+                value = value.or(byte.toInt().shl(index * 8))
+            }
+            Log.d("GPS-GATT", "Read ${characteristic?.uuid} with value ${value}");
         }
 
-        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+        override fun onCharacteristicWrite(
+                gatt: BluetoothGatt?,
+                characteristic: BluetoothGattCharacteristic?,
+                status: Int
+        ) {
             super.onCharacteristicWrite(gatt, characteristic, status)
             // TODO: Implement!
         }
@@ -65,21 +83,46 @@ class MainActivity : AppCompatActivity() {
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
             super.onServicesDiscovered(gatt, status)
             // TODO: Implement!
+            Log.d("GPS-GATT", "Discovered ${gatt?.services?.size} services with status ${status}");
+            val gpsCharacteristicUuid = UUID.fromString("72047b8d-3c2b-4e18-ac20-9e57f2532022")
+            gatt?.services?.forEach { service ->
+                service.characteristics?.forEach { characteristic ->
+                    if (characteristic != null && characteristic.uuid.equals(gpsCharacteristicUuid)) {
+                        Log.d(
+                                "GPS-GATT",
+                                "Service ${service.uuid} with characteristic ${characteristic.uuid} first value is ${characteristic.value}."
+                        )
+                        val uuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+                        val descriptor = characteristic.getDescriptor(uuid)
+                        gatt.setCharacteristicNotification(characteristic, true)
+                        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        if(! gatt.writeDescriptor(descriptor)) {
+                            Log.e(
+                                "GPS-GATT",
+                                "Failed to subscribe to ${characteristic.uuid}."
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
             super.onReadRemoteRssi(gatt, rssi, status)
             // TODO: Implement so that the user knows about the signal strength!
+            Log.d("GPS-GATT", "Read remote RSSI ${rssi}");
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
             super.onMtuChanged(gatt, mtu, status)
             // TODO: Might need to limit the data rate if this says so.
+            Log.d("GPS-GATT", "MTU changed ${mtu}");
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
             super.onCharacteristicChanged(gatt, characteristic)
             // TODO: The device says it has new data, so read it.
+            Log.d("GPS-GATT", "Changed ${characteristic?.uuid} with value ${characteristic?.value}");
         }
     }
 
@@ -93,30 +136,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val neededPermissions = arrayOf(
-        PermissionRequestItem(
-            "android.permission.BLUETOOTH",
-            "Needed to access Bluetooth services on your device."
-        ),
-        PermissionRequestItem(
-            "android.permission.BLUETOOTH_ADMIN",
-            "Needed to access Bluetooth functionality on your device."
-        ),
-        PermissionRequestItem(
-            "android.permission.BLUETOOTH_SCAN",
-            "Needed to find and claim your GPS device."
-        ),
-        PermissionRequestItem(
-            "android.permission.BLUETOOTH_ADVERTISE",
-            "Needed to let your GPS device find your device over Bluetooth."
-        ),
-        PermissionRequestItem(
-            "android.permission.BLUETOOTH_CONNECT",
-        "Needed to connect and communicate with your GPS device."
-        ),
-        PermissionRequestItem(
-            "android.permission.ACCESS_FINE_LOCATION",
-            "Needed to increase GPS precision."
-        )
+            PermissionRequestItem(
+                    "android.permission.BLUETOOTH",
+                    "Needed to access Bluetooth services on your device."
+            ),
+            PermissionRequestItem(
+                    "android.permission.BLUETOOTH_ADMIN",
+                    "Needed to access Bluetooth functionality on your device."
+            ),
+            PermissionRequestItem(
+                    "android.permission.BLUETOOTH_SCAN",
+                    "Needed to find and claim your GPS device."
+            ),
+            PermissionRequestItem(
+                    "android.permission.BLUETOOTH_ADVERTISE",
+                    "Needed to let your GPS device find your device over Bluetooth."
+            ),
+            PermissionRequestItem(
+                    "android.permission.BLUETOOTH_CONNECT",
+                    "Needed to connect and communicate with your GPS device."
+            ),
+            PermissionRequestItem(
+                    "android.permission.ACCESS_FINE_LOCATION",
+                    "Needed to increase GPS precision."
+            )
     )
     private val grantedPermissions = neededPermissions.map {
         PermissionRequestStatus.PENDING
@@ -135,17 +178,18 @@ class MainActivity : AppCompatActivity() {
             // Force reload the recycler view once
             // we have recieved some scanned bluetooth
             // devices to show.
-            scanRecyclerView.invalidate()
+            scanRecyclerView.adapter?.notifyDataSetChanged()
         }
 
+        scanRecyclerView.layoutManager = LinearLayoutManager(this)
         scanRecyclerView.adapter = object : RecyclerView.Adapter<ScanItemViewHolder>() {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ScanItemViewHolder {
                 val view: View = LayoutInflater.from(
-                    parent.context
+                        parent.context
                 ).inflate(
-                    R.layout.bluetooth_list_item,
-                    parent,
-                    false
+                        R.layout.bluetooth_list_item,
+                        parent,
+                        false
                 )
                 return ScanItemViewHolder(view)
             }
@@ -159,24 +203,23 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun getItemCount() = model.scanItems.size
-
         };
 
         // Setup a standard permission request and response handler.
         requestPermissionLauncher =
             registerForActivityResult(
-                ActivityResultContracts.RequestPermission()
+                    ActivityResultContracts.RequestPermission()
             ) { isGranted: Boolean ->
                 val name = neededPermissions[requestedPermissionIndex].permissionName
                 if (isGranted) {
                     Log.d(
-                        LogConstants.PERMISSION,
-                        "User granted permission - $name"
+                            LogConstants.PERMISSION,
+                            "User granted permission - $name"
                     )
                 } else {
                     Log.w(
-                        LogConstants.PERMISSION,
-                        "User prevented permission - $name"
+                            LogConstants.PERMISSION,
+                            "User prevented permission - $name"
                     )
                     failedPermissionIndex += 1
                 }
@@ -228,24 +271,36 @@ class MainActivity : AppCompatActivity() {
         for(device in devices) {
             if(device.bondState == BluetoothDevice.BOND_BONDED) {
                 Log.d(LogConstants.BLUETOOTH, "Device (${device.name}) at (${device.address}) with Uuids:")
-                for((index, uuid) in device.uuids.withIndex()) {
-                    Log.d(LogConstants.BLUETOOTH, "UUID (${device.name}) ($index) uuids: ${uuid.uuid.toString()}")
-                }
-                if(device.uuids.contains(ServiceUUID.MONKEY_DO_GPS_UUID)) {
-                    compatibleDevice.add(device)
-                }
+                val uuids = device.uuids
+                /*if(uuids != null) {
+                    for ((index, uuid) in uuids.withIndex()) {
+                        Log.d(
+                            LogConstants.BLUETOOTH,
+                            "UUID (${device.name}) ($index) uuids: ${uuid.uuid.toString()}"
+                        )
+                    }
+                    if (uuids.contains(ServiceUUID.MONKEY_DO_GPS_UUID)) {
+                        compatibleDevice.add(device)
+                    }
+                }*/
+                compatibleDevice.add(device)
             }
         }
         if(compatibleDevice.size > 0) {
-            Log.d(LogConstants.BLUETOOTH, "Compatible device: ${compatibleDevice.get(0).name}!")
-            model.scanItems = compatibleDevice.map {
-                BluetoothScanItem(
-                        it.name,
-                        it.address,
-                        true,
-                        it
-                )
-            }.toTypedArray()
+            val list = model.scanItems
+            list.clear()
+            list.addAll(
+                    compatibleDevice.map {
+                        BluetoothScanItem(
+                                it.name,
+                                it.address,
+                                true,
+                                it
+                        )
+                    }
+            )
+            model.scanItems = list
+            scanRecyclerView.adapter?.notifyDataSetChanged()
         } else {
             Log.e(LogConstants.BLUETOOTH, "No compatible devices found.")
         }
@@ -257,8 +312,8 @@ class MainActivity : AppCompatActivity() {
         while(requestedPermissionIndex < neededPermissions.size) {
             val request = neededPermissions[requestedPermissionIndex]
             val checkResponse = ContextCompat.checkSelfPermission(
-                applicationContext,
-                request.permissionName
+                    applicationContext,
+                    request.permissionName
             )
             if (checkResponse == PermissionChecker.PERMISSION_DENIED) {
                 val shouldShow = shouldShowRequestPermissionRationale(request.permissionName)
@@ -278,8 +333,8 @@ class MainActivity : AppCompatActivity() {
             } else {
                 // Already granted the permission.
                 Log.d(
-                    LogConstants.PERMISSION,
-                    "Already granted permission - " + request.permissionName
+                        LogConstants.PERMISSION,
+                        "Already granted permission - " + request.permissionName
                 )
                 grantedPermissions[requestedPermissionIndex] = PermissionRequestStatus.GRANTED
             }
@@ -290,10 +345,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectScanItem(item: BluetoothScanItem) {
+        currentGatt?.disconnect()
         currentGatt = item.bleDevice.connectGatt(
                 this,
                 true,
                 gattCallback
         )
+        Log.e(LogConstants.BLUETOOTH, "GATT ${currentGatt}.")
     }
 }

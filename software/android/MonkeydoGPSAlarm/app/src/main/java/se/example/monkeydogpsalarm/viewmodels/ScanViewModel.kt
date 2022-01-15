@@ -6,13 +6,13 @@ import androidx.lifecycle.ViewModel
 import se.example.monkeydogpsalarm.data.BluetoothScanItem
 
 class ScanViewModel : ViewModel() {
-    private val scanItemsMutable: MutableLiveData<Array<BluetoothScanItem>> = MutableLiveData()
+    private val scanItemsMutable: MutableLiveData<ArrayList<BluetoothScanItem>> = MutableLiveData()
 
-    var scanItems: Array<BluetoothScanItem>
-        get() = scanItemsMutable.value ?: arrayOf()
+    var scanItems: ArrayList<BluetoothScanItem>
+        get() = scanItemsMutable.value ?: arrayListOf()
         set(value) {
             scanItemsMutable.value = value
         }
 
-    fun getScanItemsMutable() = scanItemsMutable as LiveData<Array<BluetoothScanItem>>
+    fun getScanItemsMutable() = scanItemsMutable as LiveData<ArrayList<BluetoothScanItem>>
 }

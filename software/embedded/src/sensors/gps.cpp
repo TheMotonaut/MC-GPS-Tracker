@@ -5,10 +5,20 @@
 #include "gps.hpp"
 #include "../device_config.hpp"
 
+const char * msg_table[] = {
+  "NEVERMATCH",
+  "$GPGGA",
+  "$GPGLL",
+  "$GPGSA",
+  "$GPGSV",
+  "$GPMSS",
+  "$GPRMC",
+  "$GPVTG",
+  "$GPZDA"
+};
+
 MC_GPS_Coordinate::MC_GPS_Coordinate(void) {}
 MC_GPS_Time::MC_GPS_Time(void) {}
-
-int state = 0;
 
 void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_tokens){
   std::istringstream ss(msg);
@@ -28,18 +38,6 @@ float convertLongitude(std::string * longitude){
   //Converts longitude from degrees minutes(string)[dddmm.mmmm] to degrees decimal (float)
   return std::stof(longitude -> substr(0,3)) + std::stof(longitude -> substr(3,6))/60.0f;
 }
-
-std::array<std::string, 9> msg_table = {
-  "NEVERMATCH",
-  "$GPGGA",
-  "$GPGLL",
-  "$GPGSA",
-  "$GPGSV",
-  "$GPMSS",
-  "$GPRMC",
-  "$GPVTG",
-  "$GPZDA"
-};
 
 void gpsPulse(void) {             //Pulse GPS for toogling on/off
   digitalWrite(PIN_GPS_ON, LOW);
@@ -109,8 +107,8 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
     std::vector<std::string> message_tokens;
     tokenizeNMEAMessage(input_buffer, & message_tokens);
 
-    for(uint8_t i = 0; i < msg_table.size(); i++) {
-      if(message_tokens[0] == msg_table[i]) {
+    for(uint8_t i = 0; i < sizeof(msg_table) / sizeof(msg_table[0]); i++) {
+      if(! strcmp(message_tokens[0].c_str(), msg_table[i])) {
         msg_id = (NMEA_MSG_T)i;
         break;
       }

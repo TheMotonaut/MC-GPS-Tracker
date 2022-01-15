@@ -5,7 +5,7 @@
 #define BE_MAX_ADVERTISING_BYTES            (31) // From bluetooth specifications.
 
 #define BE_ADVERTISING_INTERVAL             (160) // (3200) // Corresponds to 2 seconds.
-#define BE_ADVERTISING_TIMEOUT              (1000) // Corresponds to 10 seconds.
+#define BE_ADVERTISING_TIMEOUT              (60000) // Corresponds to 60 seconds.
 
 #define BE_GSP_SERVICE_UUID                 "1fc3a01b-fe36-4f6d-893e-bc000649be98"
 #define BE_DATA_SERVICE_UUID                "30df747a-5921-40c0-8534-8dca5e89b35b"
@@ -13,6 +13,14 @@
 #define BE_STATUS_SERVICE_UUID              "867419fb-5837-4e0e-9c96-a6010feb5e2a"
 
 #define BE_GPS_COORD_CHARACTERISTIC_UUID    "72047b8d-3c2b-4e18-ac20-9e57f2532022"
+
+void connectedEvent(const BlePeerDevice& peer, void * context) {
+    Serial.println("Connected over bluetooth.");
+}
+
+void disconnectEvent(const BlePeerDevice& peer, void * context) {
+    Serial.println("Disconnected bluetooth.");
+}
 
 void pairingEvent(const BlePairingEvent & event, void * context) {
     MC_Bluetooth * mc_ble = reinterpret_cast<MC_Bluetooth *>(context);
@@ -79,6 +87,7 @@ void pairingEvent(const BlePairingEvent & event, void * context) {
                 event.payload.status.bonded ? "yes" : "no",
                 event.payload.status.lesc ? "yes" : "no"
             );
+            BLE.connect(event.peer.address());
         }
             break;
         default:
@@ -112,15 +121,15 @@ void MC_Bluetooth::setup(void) {
     }
     // We only broadcast the status service.
     uint32_t advertising_size = 0;
-    /*advertising_size += advertising_data.appendServiceUUID(
+    advertising_size += advertising_data.appendServiceUUID(
         gps_service.UUID()
-    );*/
+    );
     advertising_size += advertising_data.appendLocalName("MC");
-    if(advertising_size > BE_MAX_ADVERTISING_BYTES) {
+    /*if(advertising_size > BE_MAX_ADVERTISING_BYTES) {
         Serial.printf("Too many advertising bytes (%d).", advertising_size);
         delay(1000);
         abort();
-    }
+    }*/
     // Setup peripheral service advertising.
     if(BLE.setAdvertisingParameters(
         BE_ADVERTISING_INTERVAL,
@@ -133,14 +142,16 @@ void MC_Bluetooth::setup(void) {
         abort();
     }
     BLE.onPairingEvent(pairingEvent, this);
+    BLE.onConnected(connectedEvent, this);
+    BLE.onDisconnected(disconnectEvent, this);
 }
 
 // --------------------------------------------
 // Public functions.
 // --------------------------------------------
 
-const BleUuid GPS_SERVICE_UUID(BE_GSP_SERVICE_UUID);
-const BleUuid GPS_COORD_UUID(BE_GPS_COORD_CHARACTERISTIC_UUID);
+uint8_t GPS_COORD_BUFFER[4];
+uint32_t incer;
 
 MC_Bluetooth::MC_Bluetooth(void) :
     events(0),
@@ -151,34 +162,41 @@ MC_Bluetooth::MC_Bluetooth(void) :
     status_service(BE_STATUS_SERVICE_UUID),
     gps_coordinate_characteristic(
         "coord",
-        BleCharacteristicProperty::NOTIFY,
-        GPS_COORD_UUID,
+        BleCharacteristicProperty::READ | BleCharacteristicProperty::NOTIFY,
+        BE_GPS_COORD_CHARACTERISTIC_UUID,
         gps_service.UUID()
     ) {
-    // Add the characteristics.
-    BLE.addCharacteristic(gps_coordinate_characteristic);
+    // Ignore.
 }
 
 MC_Bluetooth::~MC_Bluetooth(void) {
 }
-
-uint8_t GPS_COORD_BUFFER[4];
-uint32_t incer;
 
 void MC_Bluetooth::init(void) {
     incer = 0;
     Serial.println("BLE Init");
     setIsEnabled(true);
     setup();
+    // Add the characteristics.
+    BLE.addCharacteristic(gps_coordinate_characteristic);
 }
 
 void MC_Bluetooth::shutdown(void) {
     Serial.println("BLE Shutdown");
 }
 
+static uint32_t ms = 0;
+
 void MC_Bluetooth::step(void) {
-    * ((uint32_t *) GPS_COORD_BUFFER) = incer ++;
-    gps_coordinate_characteristic.setValue(GPS_COORD_BUFFER, sizeof(GPS_COORD_BUFFER));
+    if(millis() - ms > 5000) {
+        ms = millis();
+        * ((uint32_t *) GPS_COORD_BUFFER) = ++ incer;
+        gps_coordinate_characteristic.setValue(
+            GPS_COORD_BUFFER,
+            sizeof(GPS_COORD_BUFFER)
+        );
+        Serial.printlnf("Inc %d", incer);
+    }
 }
 
 void MC_Bluetooth::setIsEnabled(bool enabled) {

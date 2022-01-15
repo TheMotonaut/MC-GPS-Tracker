@@ -1,4 +1,4 @@
-#include <vector>
+// #include <vector>
 #include <Particle.h>
 #include "device_config.hpp"
 
@@ -19,7 +19,7 @@ SYSTEM_MODE(MANUAL);
 const uint32_t STATE_COLORS[] = {
   0xFFFFFF,                         //White
   0xFF00FF,                         //Purple
-  0x00FFFF,                         //
+  0x00FFFF,                         // Cyan
   0xFFFF00,                         
   0xFF0000,                         //Red
   0x0000FF,                         //Blue
@@ -119,7 +119,7 @@ struct MC_System : MC_Component {
             shutdown();
           }
           if(events & SYSTEM_EVENT_ADVERTISE) {
-            Serial.println("Bluetooth advertising for 10 seconds.");
+            Serial.println("Bluetooth advertising for 60 seconds.");
             bluetooth.setAdvertiseEnabled(true);
           }
           events = 0;
