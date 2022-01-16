@@ -150,7 +150,7 @@ void MC_Bluetooth::setup(void) {
 // Public functions.
 // --------------------------------------------
 
-uint8_t GPS_COORD_BUFFER[4];
+uint8_t GPS_COORD_BUFFER[12];
 uint32_t incer;
 
 MC_Bluetooth::MC_Bluetooth(void) :
@@ -190,7 +190,9 @@ static uint32_t ms = 0;
 void MC_Bluetooth::step(void) {
     if(millis() - ms > 5000) {
         ms = millis();
-        * ((uint32_t *) GPS_COORD_BUFFER) = ++ incer;
+        * (& ((uint32_t *) GPS_COORD_BUFFER)[0]) = (++ incer) & 0x3;
+        * (& ((uint32_t *) GPS_COORD_BUFFER)[1]) = ++ incer;
+        * (& ((uint32_t *) GPS_COORD_BUFFER)[2]) = ++ incer;
         gps_coordinate_characteristic.setValue(
             GPS_COORD_BUFFER,
             sizeof(GPS_COORD_BUFFER)

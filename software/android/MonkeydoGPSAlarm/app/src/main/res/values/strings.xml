@@ -4,4 +4,19 @@
     <string name="login">Login</string>
     <string name="scan">Scan</string>
     <string name="scan_instructions">Run an Bluetooth scan and choose a compatible and paired MotoGPS device.</string>
+    <string name="title_activity_g_p_s">GPSActivity</string>
+    <string name="item_gps">GPS</string>
+    <string name="item_longitude">Longitude</string>
+    <string name="item_latitude">Latitude</string>
+    <string name="item_status">Status</string>
+    <string name="item_value_placeholder">--</string>
+    <string name="item_status_placeholder">--</string>
+    <string name="back">Back</string>
+    <string name="reconnect">Reconnect</string>
+    <string name="ble_name">BLEDevice</string>
+    <!--
+    This string is used for square devices and overridden by hello_world in
+    values-round/strings.xml for round devices.
+    -->
+    <string name="hello_world">Hello Square World!</string>
 </resources>

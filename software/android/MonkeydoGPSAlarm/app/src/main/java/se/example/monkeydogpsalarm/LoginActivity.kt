@@ -3,7 +3,6 @@ package se.example.monkeydogpsalarm
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -19,8 +18,8 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        phoneNumber = findViewById<EditText>(R.id.phone_number_input_view)
-        loginButton = findViewById<Button>(R.id.login_button)
+        phoneNumber = findViewById(R.id.phone_number_input_view)
+        loginButton = findViewById(R.id.login_button)
 
         val loginViewModel: LoginViewModel by viewModels()
         model = loginViewModel
@@ -34,7 +33,6 @@ class LoginActivity : AppCompatActivity() {
                 false
         }
         loginButton.setOnClickListener {
-            Log.d("BOOT", "SHOOY")
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
