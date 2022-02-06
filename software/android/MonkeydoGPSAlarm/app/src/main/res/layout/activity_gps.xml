@@ -175,6 +175,93 @@
                     app:layout_constraintStart_toEndOf="@+id/latitudeItemTextView"
                     app:layout_constraintTop_toBottomOf="@+id/longitudeItemTextView" />
             </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/linearLayout2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/motionXValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/item_status_placeholder"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:typeface="normal"
+                    app:layout_constraintEnd_toEndOf="@+id/motionXText"
+                    app:layout_constraintStart_toStartOf="@+id/motionXText"
+                    app:layout_constraintTop_toBottomOf="@+id/motionXText" />
+
+                <TextView
+                    android:id="@+id/motionXText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/item_x_ms"
+                    android:textAlignment="center"
+                    android:textColor="@color/title_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:typeface="normal"
+                    app:layout_constraintEnd_toStartOf="@+id/motionYText"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="@+id/motionYText" />
+
+                <TextView
+                    android:id="@+id/motionYText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/item_y_ms"
+                    android:textAlignment="center"
+                    android:textColor="@color/title_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toStartOf="@+id/motionZText"
+                    app:layout_constraintStart_toEndOf="@+id/motionXText"
+                    app:layout_constraintTop_toTopOf="@+id/motionZText" />
+
+                <TextView
+                    android:id="@+id/motionYValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/item_value_placeholder"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="@+id/motionYText"
+                    app:layout_constraintStart_toStartOf="@+id/motionYText"
+                    app:layout_constraintTop_toBottomOf="@+id/motionYText" />
+
+                <TextView
+                    android:id="@+id/motionZText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/item_z_ms"
+                    android:textAlignment="center"
+                    android:textColor="@color/title_text"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@+id/motionYText"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/motionZValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/item_value_placeholder"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@+id/motionZText"
+                    app:layout_constraintTop_toBottomOf="@+id/motionZText" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
         </LinearLayout>
     </ScrollView>
 

@@ -1,7 +1,7 @@
 package se.example.monkeydogpsalarm
 
-import se.example.monkeydogpsalarm.data.GPSCharacteristicData
+import se.example.monkeydogpsalarm.data.DataCharacteristicData
 
 interface GPSDataCallback {
-    fun dataReceived(data: GPSCharacteristicData)
+    fun dataReceived(data: DataCharacteristicData)
 }

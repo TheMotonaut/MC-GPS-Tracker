@@ -20,10 +20,7 @@ import androidx.core.content.PermissionChecker
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import se.example.monkeydogpsalarm.ble.BLEManager
-import se.example.monkeydogpsalarm.data.BluetoothScanItem
-import se.example.monkeydogpsalarm.data.GPSCharacteristicData
-import se.example.monkeydogpsalarm.data.PermissionRequestItem
-import se.example.monkeydogpsalarm.data.PermissionRequestStatus
+import se.example.monkeydogpsalarm.data.*
 import se.example.monkeydogpsalarm.viewmodels.ScanViewModel
 import java.util.*
 
@@ -147,7 +144,7 @@ class MainActivity : AppCompatActivity() {
         // Open a bluetooth adater.
         bleManager = BLEManager(
             object : GPSDataCallback {
-                override fun dataReceived(data: GPSCharacteristicData) {
+                override fun dataReceived(data: DataCharacteristicData) {
                     TODO("Not yet implemented")
                 }
             }

@@ -6,21 +6,27 @@ import android.util.Log
 import se.example.monkeydogpsalarm.GPSDataCallback
 import se.example.monkeydogpsalarm.LogConstants
 import se.example.monkeydogpsalarm.data.BluetoothScanItem
+import se.example.monkeydogpsalarm.data.DataCharacteristicData
 import se.example.monkeydogpsalarm.data.GPSCharacteristicData
+import se.example.monkeydogpsalarm.data.MotionCharacteristicData
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
 
 class BLEManager (
     val dataCallback: GPSDataCallback
 ) {
+    val DATA_UUID = "72047b8d-3c2b-4e18-ac20-9e57f2532022"
+
     private var currentGatt: BluetoothGatt? = null
     private lateinit var adapter: BluetoothAdapter
 
     private fun bytesToInt(bytes: ByteArray): Int {
-        var value = 0
-        bytes.forEachIndexed { index, byte ->
-            value = value.or(byte.toInt().shl(index * 8))
-        }
-        return value
+        return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).int
+    }
+
+    private fun bytesToFloat(bytes: ByteArray): Float {
+        return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).float
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
@@ -68,7 +74,7 @@ class BLEManager (
             super.onServicesDiscovered(gatt, status)
             // TODO: Implement!
             Log.d("GPS-GATT", "Discovered ${gatt?.services?.size} services with status $status");
-            val gpsCharacteristicUuid = UUID.fromString("72047b8d-3c2b-4e18-ac20-9e57f2532022")
+            val gpsCharacteristicUuid = UUID.fromString(DATA_UUID)
             gatt?.services?.forEach { service ->
                 service.characteristics?.forEach { characteristic ->
                     if (characteristic != null && characteristic.uuid.equals(gpsCharacteristicUuid)) {
@@ -108,18 +114,31 @@ class BLEManager (
             // TODO: The device says it has new data, so read it.
             Log.d("GPS-GATT", "Changed ${characteristic?.uuid} with value ${characteristic?.value} and size ${characteristic?.value?.size}");
             val bytes = characteristic?.value
-            if(bytes?.size == 12) {
+            if(bytes?.size == 24) {
                 val status = bytesToInt(bytes.copyOfRange(0, 4))
-                val longitude = bytesToInt(bytes.copyOfRange(4, 8))
-                val latitude = bytesToInt(bytes.copyOfRange(8, 12))
-                val data = GPSCharacteristicData(
-                    longitude.toFloat(),
-                    latitude.toFloat(),
+                val longitude = bytesToFloat(bytes.copyOfRange(4, 8))
+                val latitude = bytesToFloat(bytes.copyOfRange(8, 12))
+                val gps = GPSCharacteristicData(
+                    longitude,
+                    latitude,
                     status
+                )
+
+                val accX = bytesToFloat(bytes.copyOfRange(12, 16))
+                val accY = bytesToFloat(bytes.copyOfRange(16, 20))
+                val accZ = bytesToFloat(bytes.copyOfRange(20, 24))
+                val motion = MotionCharacteristicData(
+                    accX,
+                    accY,
+                    accZ
+                )
+                val data = DataCharacteristicData(
+                    gps,
+                    motion
                 )
                 dataCallback.dataReceived(data)
             } else {
-                Log.e("GPS-GATT", "Bad data block");
+                Log.e("GPS-GATT", "Bad data block $bytes with size ${bytes?.size}");
             }
         }
     }

@@ -9,6 +9,9 @@
     <string name="item_longitude">Longitude</string>
     <string name="item_latitude">Latitude</string>
     <string name="item_status">Status</string>
+    <string name="item_x_ms">X m/s^2</string>
+    <string name="item_y_ms">Y m/s^2</string>
+    <string name="item_z_ms">Z m/s^2</string>
     <string name="item_value_placeholder">--</string>
     <string name="item_status_placeholder">--</string>
     <string name="back">Back</string>
