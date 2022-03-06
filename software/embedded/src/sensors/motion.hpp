@@ -8,12 +8,12 @@
 
 struct MC_Vector {
     public:
-        float x;
-        float y;
-        float z;
-        float rotX;
-        float rotY;
-        float rotZ;
+        int16_t x;
+        int16_t y;
+        int16_t z;
+        int16_t rotX;
+        int16_t rotY;
+        int16_t rotZ;
         MC_Vector(void);
 };
 

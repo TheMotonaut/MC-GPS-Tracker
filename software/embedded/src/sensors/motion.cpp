@@ -19,12 +19,12 @@ const uint8_t retrieveDataBuffer[] = {
 };
 
 MC_Vector::MC_Vector(void) :
-    x(0.0f),
-    y(0.0f), 
-    z(0.0f), 
-    rotX(0.0f),
-    rotY(0.0f),
-    rotZ(0.0f){
+    x(0),
+    y(0), 
+    z(0), 
+    rotX(0),
+    rotY(0),
+    rotZ(0){
 }
 
 // ---
@@ -53,18 +53,18 @@ void MC_Motion::toogleWOM(void){
     buffer[2] = 0x4B;   //WOM_Y_TH
     buffer[3] = 98;
     buffer[4] = 0x4C;   //WOM_Z_TH
-    buffer[5] = ;
+    buffer[5] = 0x0;
     buffer[6] = 0x57;   //WOM_INT_MODE
-    buffer[7] = ;
+    buffer[7] = 0x0;
     buffer[8] = 0x50;   //Accelerometer ODR
-    buffer[9] = ;
+    buffer[9] = 0x0;
     buffer[10] = 0x4E;  //Accelmode lowpower
-    buffer[11] = ;      //Wait 1 millisecond
+    buffer[11] = 0x0;      //Wait 1 millisecond
 
     buffer[12] = 0x66;  //WOM Sources to INT1
-    buffer[13] = ;
+    buffer[13] = 0x0;
     buffer[14] = 0x56;  //Turn on WOM features
-    buffer[15] = ;
+    buffer[15] = 0x0;
 
     for (uint8_t i = 0; i < 12; i++){
         
@@ -89,21 +89,24 @@ void MC_Motion::init(void) {
 
     byte buffer[6];
     buffer[0] = 0x4E;
-    buffer[1] = 0b00001111;
-    buffer[2] = 0x4F;
-    buffer[3] = 0b1000000;
-    buffer[4] = 0x82;
+    buffer[1] = 0b00101111;
+    buffer[2] = 0x4F;           //GYRO CFG
+    buffer[3] = 0b1111000;
+    buffer[4] = 0x82;           //
     buffer[5] = 0b01100000;
+    buffer[6] = 0x50;
+    buffer[7] = 0b0000110;
     pinResetFast(PIN_nCS_MOTION);
 
     SPI.transfer(buffer[0]);
     SPI.transfer(buffer[1]);
     pinSetFast(PIN_nCS_MOTION); 
-    delay(1);
+    delay(50);
 
     pinResetFast(PIN_nCS_MOTION);
-    for(uint8_t i = 2; i < sizeof(buffer) / sizeof(buffer[0]); i++){
+    for(uint8_t i = 2; i < 6; i = i + 2){
         SPI.transfer(buffer[i]);
+        SPI.transfer(buffer[i+1]);
     }
     pinSetFast(PIN_nCS_MOTION);
     
@@ -116,30 +119,40 @@ void MC_Motion::shutdown(void) {
 void MC_Motion::retrieveMotionData(){
     SPI.begin(SPI_MODE_MASTER, PIN_nCS_MOTION);
     SPI.setBitOrder(MSBFIRST);
-    SPI.setClockSpeed(2*KHZ);
+    SPI.setClockSpeed(1*MHZ);
     SPI.setDataMode(SPI_MODE3);
     pinSetFast(PIN_nCS_MOTION);
 
     byte data[12];
 
+    uint8_t first = 0x1F|READ;
+
     pinResetFast(PIN_nCS_MOTION);
-    for(uint8_t i = 0; i < sizeof(data) / sizeof(data[0]); i++){
-        SPI.transfer(retrieveDataBuffer[i]);
-        data[i] = SPI.transfer(0x00);
+    for(uint8_t i = 0; i < 12; i = i + 1){
+        SPI.transfer(first + i);
+        data[i] = SPI.transfer(0x0);
     }
     pinSetFast(PIN_nCS_MOTION);
 
-    int16_t x = data[0];
-    x = (x * 256) + data[1];
-    vector.x = ((float)x)/2048;
+    SPI.end();
 
-    int16_t y = data[2];
-    y = (y << 8) + data[3];
-    vector.y = ((float)y)/2048;
+    int16_t x = (data[0] << 8) + data[1];
+    vector.x = x;
 
-    int16_t z = data[4];
-    z = (z << 8) + data[5];
-    vector.z = ((float)z)/2048;
+    int16_t y = (data[2] << 8) + data[3]; 
+    vector.y = y;
+
+    int16_t z = (data[4] << 8) + data[5];
+    vector.z = z;
+    
+    int16_t rotx = (data[6] << 8) + data[7];
+    vector.rotX = rotx;
+
+    int16_t roty = (data[8] << 8) + data[9];
+    vector.rotY = roty;
+
+    int16_t rotz = (data[10] << 8) + data[11];
+    vector.rotZ = rotz;
 }
 
 void MC_Motion::step(void) {
@@ -149,11 +162,12 @@ void MC_Motion::step(void) {
     Serial.print("[2J");    // clear screen command
     Serial.write(27);
     Serial.print("[H");     // cursor to home command
-    Serial.printlnf("Acc X: %f", vector.x);
-    Serial.printlnf("Acc Y: %f", vector.y);
-    Serial.printlnf("Acc Z: %f", vector.z);
-    Serial.printlnf("Rot X: %f", vector.rotX);
-    Serial.printlnf("Rot Y: %f", vector.rotY);
-    Serial.printlnf("Rot Z: %f", vector.rotZ);
-    delay(1000);
+    Serial.printlnf("Acc X: %i", vector.x);
+    Serial.printlnf("Acc Y: %i", vector.y);
+    Serial.printlnf("Acc Z: %i", vector.z);
+    Serial.printlnf("Rot X: %i", vector.rotX);
+    Serial.printlnf("Rot Y: %i", vector.rotY);
+    Serial.printlnf("Rot Z: %i", vector.rotZ);
+
+    delay(1500);
 }

@@ -17,7 +17,11 @@ const char * msg_table[] = {
   "$GPZDA"
 };
 
-MC_GPS_Coordinate::MC_GPS_Coordinate(void) {}
+MC_GPS_Coordinate::MC_GPS_Coordinate(void):
+  longitude(0),
+  latitude(0)  {
+}
+
 MC_GPS_Time::MC_GPS_Time(void) {}
 
 void tokenizeNMEAMessage(const char * msg, std::vector<std::string> * message_tokens){
@@ -115,8 +119,7 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
 
     switch (msg_id) {
       case NMEA_MSG_GGA:
-        if(message_tokens.size() == 10 && message_tokens[6].compare("0") == 0){       //Check size of message and Check if status flag Postion fix indicator is set none zero
-          Serial.println("Hej");
+        if((message_tokens.size() <= 10) && message_tokens[6].compare("0") != 0){       //Check size of message and Check if status flag Postion fix indicator is set none zero
           coordinate.longitude = convertLatitude(& message_tokens[2]);
           if(message_tokens[3].compare("S") == 0) coordinate.longitude = coordinate.longitude * -1.0f;     //Make negative if south
 
@@ -127,10 +130,9 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
           time.minutes = stoi(message_tokens[1].substr(2,2));
           time.seconds = stoi(message_tokens[1].substr(4,2));
           time.milliseconds = stoi(message_tokens[1].substr(7,3));
-          Serial.println("Longitude");
-          Serial.print(coordinate.longitude);
         }
         else{
+          Serial.println(input_buffer);
           Serial.println("Fix not available or invalid");
         }
         break;
@@ -155,6 +157,7 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
 
       case NMEA_MSG_RMC:
         if(message_tokens.size() >= 9 && message_tokens[2].compare("A") == 0){
+          Serial.println(input_buffer);
           coordinate.latitude = convertLatitude(& message_tokens[3]);
           if(message_tokens[4].compare("S") == 0) coordinate.latitude = coordinate.latitude * -1.0f;    //Make negative if south
 
@@ -165,11 +168,15 @@ void MC_GPS::process(void) {                                  //Process NMEA mes
           time.minutes = stoi(message_tokens[1].substr(2,2));
           time.seconds = stoi(message_tokens[1].substr(4,2));
           time.milliseconds = stoi(message_tokens[1].substr(7,3));
-
+          
+          /*
           Serial.printlnf("Latitude: %f", coordinate.latitude);
-          Serial.printlnf("Latitude %f", coordinate.longitude);
+          Serial.printlnf("Longitude: %f", coordinate.longitude);
+          Serial.println("------------");
+          */
         }else{
-          //Serial.println("RMC data not valid");
+          Serial.println("RMC data not valid");
+          Serial.println(input_buffer);
         }
 
         break;
