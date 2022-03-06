@@ -2,10 +2,12 @@
 #include "bluetooth.hpp"
 #include "../sensors/gps.hpp"
 #include "../sensors/motion.hpp"
+#include "../peripherals/relay.hpp"
 
 //extern MC_GPS gps;
 
 extern MC_Motion motion;
+extern MC_Relay relay;
 
 #define BE_POWER_MODE                       8 // (-20) // The lowest power mode.
 #define BE_MAX_ADVERTISING_BYTES            (31) // From bluetooth specifications.
@@ -19,10 +21,58 @@ extern MC_Motion motion;
 #define BE_DATA_SERVICE_UUID                "1fc3a01b-fe36-4f6d-893e-bc000649be98"
 #define BE_ALARM_SERVICE_UUID               "9882ec2c-380f-4574-810b-6a68b67e8fca"
 #define BE_STATUS_SERVICE_UUID              "867419fb-5837-4e0e-9c96-a6010feb5e2a"
+#define BE_CONTROL_SERVICE_UUID             "6b0826ce-91aa-4452-a3b2-d96b5fd48b77"
 
 #define BE_GPS_COORD_CHARACTERISTIC_UUID    "81e10583-1cbf-4a90-b970-f96b1e9cc342"
 #define BE_MOTION_CHARACTERISTIC_UUID       "70fc87c7-8eff-4c2f-b50b-b219d6dd4e6b"
 #define BE_DATA_CHARACTERISTIC_UUID         "72047b8d-3c2b-4e18-ac20-9e57f2532022"
+#define BE_CONTROL_CHARACTERISTIC_UUID      "23e19739-600a-47e8-9438-75daa6436212"
+
+enum ControlEvent {
+    NOP = 0x00,
+    RELAY_ON = 0x01,
+    RELAY_OFF = 0x02,
+    SOUND_HORN = 0x03,
+    ALARM_ON = 0x04,
+    ALARM_OFF = 0x05
+};
+
+void onControlDataReceived(
+    const uint8_t * data,
+    size_t len,
+    const BlePeerDevice & peer,
+    void * context
+) {
+    MC_Bluetooth * mc = reinterpret_cast<MC_Bluetooth *>(context);
+    if(len == 1) {
+        switch(* data) {
+            case NOP:
+                Serial.println("ControlEvent: NOP");
+                break;
+            case RELAY_ON:
+                Serial.println("ControlEvent: RELAY_ON");
+                break;
+            case RELAY_OFF:
+                Serial.println("ControlEvent: RELAY_OFF");
+                break;
+            case SOUND_HORN:
+                Serial.println("ControlEvent: SOUND_HORN");
+                relay.soundHorn();
+                break;
+            case ALARM_ON:
+                Serial.println("ControlEvent: ALARM_ON");
+                break;
+            case ALARM_OFF:
+                Serial.println("ControlEvent: ALARM_OFF");
+                break;
+            default:
+                Serial.println("ControlEvent: Unknown control event");
+                break;
+        }
+    } else {
+        Serial.printf("Could not parse control package with length: %d.\n", len);
+    }
+}
 
 void connectedEvent(const BlePeerDevice& peer, void * context) {
     Serial.println("Connected over bluetooth.");
@@ -119,7 +169,9 @@ void MC_Bluetooth::setup(void) {
         delay(1000);
         abort();
     }
-    if(BLE.setPairingIoCaps(BlePairingIoCaps::DISPLAY_YESNO) != SYSTEM_ERROR_NONE) {
+    BlePairingIoCaps capabilities = (Serial.available() && Serial.isConnected())
+        ? BlePairingIoCaps::DISPLAY_YESNO : BlePairingIoCaps::NONE;
+    if(BLE.setPairingIoCaps(capabilities) != SYSTEM_ERROR_NONE) {
         Serial.println("Failed to set bluetooth capabilities.");
         delay(1000);
         abort();
@@ -175,6 +227,7 @@ MC_Bluetooth::MC_Bluetooth(void) :
     data_service(BE_DATA_SERVICE_UUID),
     alarm_service(BE_ALARM_SERVICE_UUID),
     status_service(BE_STATUS_SERVICE_UUID),
+    control_service(BE_CONTROL_SERVICE_UUID),
     gps_coordinate_characteristic(
         "coord",
         BleCharacteristicProperty::READ,
@@ -192,8 +245,13 @@ MC_Bluetooth::MC_Bluetooth(void) :
         BleCharacteristicProperty::READ | BleCharacteristicProperty::NOTIFY,
         BE_DATA_CHARACTERISTIC_UUID,
         data_service.UUID()
-    )
-    {
+    ),
+    control_characteristic(
+        "ctrl",
+        BleCharacteristicProperty::WRITE,
+        BE_CONTROL_CHARACTERISTIC_UUID,
+        control_service.UUID()
+    ) {
     // Ignore.
 }
 
@@ -205,10 +263,13 @@ void MC_Bluetooth::init(void) {
     Serial.println("BLE Init");
     setIsEnabled(true);
     setup();
+    // Connect characterisitc callbacks.
+    control_characteristic.onDataReceived(onControlDataReceived, this);
     // Add the characteristics.
     BLE.addCharacteristic(gps_coordinate_characteristic);
     BLE.addCharacteristic(data_characteristic);
     BLE.addCharacteristic(motion_characteristic);
+    BLE.addCharacteristic(control_characteristic);
 }
 
 void MC_Bluetooth::shutdown(void) {

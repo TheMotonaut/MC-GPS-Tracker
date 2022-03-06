@@ -5,10 +5,7 @@ import android.content.Context
 import android.util.Log
 import se.example.monkeydogpsalarm.GPSDataCallback
 import se.example.monkeydogpsalarm.LogConstants
-import se.example.monkeydogpsalarm.data.BluetoothScanItem
-import se.example.monkeydogpsalarm.data.DataCharacteristicData
-import se.example.monkeydogpsalarm.data.GPSCharacteristicData
-import se.example.monkeydogpsalarm.data.MotionCharacteristicData
+import se.example.monkeydogpsalarm.data.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
@@ -17,8 +14,10 @@ class BLEManager (
     val dataCallback: GPSDataCallback
 ) {
     val DATA_UUID = "72047b8d-3c2b-4e18-ac20-9e57f2532022"
+    val CONTROL_UUID = "23e19739-600a-47e8-9438-75daa6436212"
 
     private var currentGatt: BluetoothGatt? = null
+    private var controlCharacteristic: BluetoothGattCharacteristic? = null
     private lateinit var adapter: BluetoothAdapter
 
     private fun bytesToInt(bytes: ByteArray): Int {
@@ -39,14 +38,14 @@ class BLEManager (
             when (newState) {
                 // TODO: Give some user feedback when the
                 // device state changes.
-                BluetoothGatt.STATE_CONNECTING -> Log.d("GPS-GATT", "Connecting ${gatt?.device}");
+                BluetoothGatt.STATE_CONNECTING -> Log.d(LogConstants.GATT, "Connecting ${gatt?.device}");
                 BluetoothGatt.STATE_CONNECTED -> {
-                    Log.d("GPS-GATT", "Connected ${gatt?.device}")
+                    Log.d(LogConstants.GATT, "Connected ${gatt?.device}")
                     gatt?.connect()
                     gatt?.discoverServices()
                 }
-                BluetoothGatt.STATE_DISCONNECTING -> Log.d("GPS-GATT", "Disconnecting ${gatt?.device}");
-                BluetoothGatt.STATE_DISCONNECTED -> Log.d("GPS-GATT", "Disconnected ${gatt?.device}");
+                BluetoothGatt.STATE_DISCONNECTING -> Log.d(LogConstants.GATT, "Disconnecting ${gatt?.device}");
+                BluetoothGatt.STATE_DISCONNECTED -> Log.d(LogConstants.GATT, "Disconnected ${gatt?.device}");
             }
         }
 
@@ -58,7 +57,7 @@ class BLEManager (
             super.onCharacteristicRead(gatt, characteristic, status)
             // TODO: Implement!
             val value = bytesToInt(characteristic?.value ?: byteArrayOf(0, 0, 0, 0))
-            Log.d("GPS-GATT", "Read ${characteristic?.uuid} with value $value");
+            Log.d(LogConstants.GATT, "Read ${characteristic?.uuid} with value $value");
         }
 
         override fun onCharacteristicWrite(
@@ -73,25 +72,32 @@ class BLEManager (
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
             super.onServicesDiscovered(gatt, status)
             // TODO: Implement!
-            Log.d("GPS-GATT", "Discovered ${gatt?.services?.size} services with status $status");
+            Log.d(LogConstants.GATT, "Discovered ${gatt?.services?.size} services with status $status");
             val gpsCharacteristicUuid = UUID.fromString(DATA_UUID)
+            val controlCharacteristicUuid = UUID.fromString(CONTROL_UUID)
             gatt?.services?.forEach { service ->
                 service.characteristics?.forEach { characteristic ->
-                    if (characteristic != null && characteristic.uuid.equals(gpsCharacteristicUuid)) {
+                    if (characteristic != null && characteristic.uuid == gpsCharacteristicUuid) {
                         Log.d(
-                                "GPS-GATT",
+                                LogConstants.GATT,
                                 "Service ${service.uuid} with characteristic ${characteristic.uuid} first value is ${characteristic.value}."
                         )
                         val uuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
                         val descriptor = characteristic.getDescriptor(uuid)
                         gatt.setCharacteristicNotification(characteristic, true)
-                        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                         if(! gatt.writeDescriptor(descriptor)) {
                             Log.e(
-                                    "GPS-GATT",
+                                    LogConstants.GATT,
                                     "Failed to subscribe to ${characteristic.uuid}."
                             )
                         }
+                    } else if(characteristic.uuid == controlCharacteristicUuid) {
+                        Log.d(
+                            LogConstants.GATT,
+                            "Service ${service.uuid} with characteristic ${characteristic.uuid} for writing control packages."
+                        )
+                        controlCharacteristic = characteristic
                     }
                 }
             }
@@ -100,19 +106,19 @@ class BLEManager (
         override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
             super.onReadRemoteRssi(gatt, rssi, status)
             // TODO: Implement so that the user knows about the signal strength!
-            Log.d("GPS-GATT", "Read remote RSSI $rssi");
+            Log.d(LogConstants.GATT, "Read remote RSSI $rssi");
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
             super.onMtuChanged(gatt, mtu, status)
             // TODO: Might need to limit the data rate if this says so.
-            Log.d("GPS-GATT", "MTU changed $mtu");
+            Log.d(LogConstants.GATT, "MTU changed $mtu");
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
             super.onCharacteristicChanged(gatt, characteristic)
             // TODO: The device says it has new data, so read it.
-            Log.d("GPS-GATT", "Changed ${characteristic?.uuid} with value ${characteristic?.value} and size ${characteristic?.value?.size}");
+            Log.d(LogConstants.GATT, "Changed ${characteristic?.uuid} with value ${characteristic?.value} and size ${characteristic?.value?.size}");
             val bytes = characteristic?.value
             if(bytes?.size == 24) {
                 val status = bytesToInt(bytes.copyOfRange(0, 4))
@@ -138,7 +144,7 @@ class BLEManager (
                 )
                 dataCallback.dataReceived(data)
             } else {
-                Log.e("GPS-GATT", "Bad data block $bytes with size ${bytes?.size}");
+                Log.e(LogConstants.GATT, "Bad data block $bytes with size ${bytes?.size}");
             }
         }
     }
@@ -193,5 +199,10 @@ class BLEManager (
                 gattCallback
         )
         Log.e(LogConstants.BLUETOOTH, "GATT ${currentGatt}.")
+    }
+
+    fun writeControlEvent(controlEvent: ControlEvent) {
+        controlCharacteristic?.value = byteArrayOf(controlEvent.value)
+        currentGatt?.writeCharacteristic(controlCharacteristic)
     }
 }

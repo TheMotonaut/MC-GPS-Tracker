@@ -158,7 +158,7 @@ void MC_Motion::retrieveMotionData(){
 void MC_Motion::step(void) {
     retrieveMotionData();
     
-    Serial.write(27);       // ESC command
+    /*Serial.write(27);       // ESC command
     Serial.print("[2J");    // clear screen command
     Serial.write(27);
     Serial.print("[H");     // cursor to home command
@@ -167,7 +167,7 @@ void MC_Motion::step(void) {
     Serial.printlnf("Acc Z: %i", vector.z);
     Serial.printlnf("Rot X: %i", vector.rotX);
     Serial.printlnf("Rot Y: %i", vector.rotY);
-    Serial.printlnf("Rot Z: %i", vector.rotZ);
+    Serial.printlnf("Rot Z: %i", vector.rotZ);*/
 
-    delay(1500);
+    // delay(1500);
 }

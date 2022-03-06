@@ -2,9 +2,13 @@ package se.example.monkeydogpsalarm.viewmodels
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import se.example.monkeydogpsalarm.data.DataCharacteristicData
 import se.example.monkeydogpsalarm.data.GPSCharacteristicData
 import se.example.monkeydogpsalarm.data.MotionCharacteristicData
+import se.example.monkeydogpsalarm.db.Journey
 import se.example.monkeydogpsalarm.db.JourneyDao
 
 class DataViewModel : ViewModel() {
@@ -25,4 +29,14 @@ class DataViewModel : ViewModel() {
             databaseMutable.value = value
         }
     fun getDataMutable() = dataMutable
+    fun deliverDataPoint(journey: Journey) {
+        viewModelScope.launch(Dispatchers.IO) {
+            gpsDatabase?.insert(
+                journey
+            )
+        }
+    }
+    suspend fun loadDataPoints(jid: Int): List<Journey> {
+        return gpsDatabase?.loadByJid(jid) ?: arrayListOf()
+    }
 }

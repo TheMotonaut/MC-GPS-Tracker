@@ -6,7 +6,8 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class Journey(
-    @PrimaryKey val jid: Int,
+    @PrimaryKey(autoGenerate = true) val did: Int,
+    @ColumnInfo(name = "jid") val jid: Int,
     @ColumnInfo(name = "timestamp") val timestamp: String?,
     @ColumnInfo(name = "longitude") val longitude: Float?,
     @ColumnInfo(name = "latitude") val latitude: Float?,
@@ -18,5 +19,8 @@ data class Journey(
     @ColumnInfo(name = "degreesZ") val degreesZ: Float?,
     @ColumnInfo(name = "velocity") val velocity: Float?,
     @ColumnInfo(name = "cellularSignalStrength") val cellularSignalStrength: Float?,
-    @ColumnInfo(name = "bleSignalStrength") val bleSignalStrength: Float?
+    @ColumnInfo(name = "bleSignalStrength") val bleSignalStrength: Float?,
+    @ColumnInfo(name = "gpsStatus") val gpsStatus: PeripheralStatus?,
+    @ColumnInfo(name = "motionStatus") val motionStatus: PeripheralStatus?,
+    @ColumnInfo(name = "relayStatus") val relayStatus: PeripheralStatus?
 )

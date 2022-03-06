@@ -11,6 +11,7 @@ enum RelayState {
 
 struct MC_Relay : MC_Component {
     private:
+        uint32_t events;
     public:
         MC_Relay(void);
         ~MC_Relay(void);
@@ -22,6 +23,7 @@ struct MC_Relay : MC_Component {
         void setState(RelayState state);
         void alarmOn(void);
         void alarmOff(void);
+        void soundHorn(void);
 };
 
 #endif /* __RELAY_HPP__ */

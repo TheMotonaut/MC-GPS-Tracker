@@ -24,9 +24,11 @@ struct MC_Bluetooth : MC_Component {
         BleService data_service;
         BleService alarm_service;
         BleService status_service;
+        BleService control_service;
         BleCharacteristic gps_coordinate_characteristic;
         BleCharacteristic motion_characteristic;
         BleCharacteristic data_characteristic;
+        BleCharacteristic control_characteristic;
         BleAdvertisingData advertising_data;
         void setup(void);
     public:

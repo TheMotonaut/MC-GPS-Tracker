@@ -2,14 +2,21 @@ package se.example.monkeydogpsalarm
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import se.example.monkeydogpsalarm.ble.BLEManager
+import se.example.monkeydogpsalarm.data.ControlEvent
 import se.example.monkeydogpsalarm.data.DataCharacteristicData
-import se.example.monkeydogpsalarm.db.JourneyDatabase
 import se.example.monkeydogpsalarm.db.Journey
+import se.example.monkeydogpsalarm.db.JourneyDatabase
+import se.example.monkeydogpsalarm.db.PeripheralStatus
 import se.example.monkeydogpsalarm.viewmodels.DataViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -30,7 +37,26 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
     private lateinit var motionYTextView: TextView
     private lateinit var motionZTextView: TextView
 
+    private lateinit var honkButton: Button
+
     private lateinit var bleManager: BLEManager
+
+    private fun updateDisplayed(journey: Journey) {
+        runOnUiThread {
+            gpsLongitudeTextView.text = journey.longitude.toString()
+            gpsLatitudeTextView.text = journey.latitude.toString()
+
+            motionXTextView.text = journey.accelerationX.toString()
+            motionYTextView.text = journey.accelerationY.toString()
+            motionZTextView.text = journey.accelerationZ.toString()
+
+            gpsStatusTextView.text = journey.gpsStatus.toString()
+        }
+    }
+
+    private fun writeControlDataEvent(controlEvent: ControlEvent) {
+        bleManager.writeControlEvent(controlEvent)
+    }
 
     override fun dataReceived(data: DataCharacteristicData) {
         runOnUiThread {
@@ -61,14 +87,14 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
         motionYTextView = findViewById(R.id.motionYValue)
         motionZTextView = findViewById(R.id.motionZValue)
 
-        model.getDataMutable().observe(this) {
-            gpsStatusTextView.text = when {
-                it == null -> "Offline"
-                it.gps.isGPSActive() -> "Inactive"
-                it.gps.isGPSValid() -> "Invalid"
-                else -> "OK"
-            }
+        honkButton = findViewById(R.id.honk_button)
 
+        honkButton.setOnClickListener {
+            Log.d(LogConstants.GATT, "Sending honk request!")
+            writeControlDataEvent(ControlEvent.SOUND_HORN)
+        }
+
+        model.getDataMutable().observe(this) {
             val datJid = 0
             val datTimestamp: String = timestampFormat.format(Date())
             val datLongitude = it?.gps?.longitude
@@ -83,14 +109,17 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
             val datCellularSignalStrength = 0.0f
             val datBleSignalStrength = 0.0f
 
-            gpsLongitudeTextView.text = datLongitude.toString()
-            gpsLatitudeTextView.text = datLatitude.toString()
-
-            motionXTextView.text = datAccelerationX.toString()
-            motionYTextView.text = datAccelerationY.toString()
-            motionZTextView.text = datAccelerationZ.toString()
+            val gpsStatus = when {
+                it == null -> PeripheralStatus.OFFLINE
+                it.gps.isGPSActive() -> PeripheralStatus.INACTIVE
+                it.gps.isGPSValid() -> PeripheralStatus.INVALID
+                else -> PeripheralStatus.OK
+            }
+            val motionStatus = PeripheralStatus.OK
+            val relayStatus = PeripheralStatus.OK
 
             val journey = Journey(
+                0, // Auto increment id.
                 datJid,
                 datTimestamp,
                 datLongitude,
@@ -103,11 +132,15 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
                 datDegreesZ,
                 datVelocity,
                 datCellularSignalStrength,
-                datBleSignalStrength
+                datBleSignalStrength,
+                gpsStatus,
+                motionStatus,
+                relayStatus
             )
-            /*model.gpsDatabase?.insert(
-                journey
-            )*/
+
+            model.deliverDataPoint(journey)
+            updateDisplayed(journey)
+
             Log.d(LogConstants.BLUETOOTH, "GPS $it, $datLongitude, $datLatitude Motion $datAccelerationX, $datAccelerationY, $datAccelerationZ")
         }
 
@@ -124,6 +157,17 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
                         this
                     )
                 }
+            }
+        }
+
+        // Load the old data from the database.
+        model.viewModelScope.launch(Dispatchers.IO) {
+            val points = withContext(Dispatchers.Default) {
+                model.loadDataPoints(0)
+            }
+            Log.d(LogConstants.BLUETOOTH,"GPS Initial loading database ${points.size} entries.")
+            points.lastOrNull()?.apply {
+                updateDisplayed(this)
             }
         }
     }

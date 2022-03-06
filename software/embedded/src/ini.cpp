@@ -39,7 +39,7 @@ std::vector<MC_Component *> components = {
   // & battery,
   & motion,
   // & gps,
-  // & relay,
+  & relay,
   & bluetooth,
   // & memory,
 };
