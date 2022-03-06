@@ -37,7 +37,7 @@ MC_GPS gps;
 
 std::vector<MC_Component *> components = {
   // & battery,
-  // & motion,
+  & motion,
   // & gps,
   // & relay,
   & bluetooth,
@@ -95,8 +95,6 @@ struct MC_System : MC_Component {
       }
     }
     void init(void) {
-      SPI.setClockSpeed(1, MHZ);
-      SPI.setDataMode(SPI_MODE0);
       apply( [](MC_Component * component) { component -> init();} );
       // -----------------
       System.on(button_click, onButtonClickHandler);
@@ -163,7 +161,6 @@ void setup(void) {
   mc_system.requestState(MC_System::State::SETUP);
   Serial.begin(9600);
   delay(1000);
-  Serial.println("Hello world - GPS data:");
   mc_system.requestState(MC_System::State::IDLE);
   mc_system.init();
 }

@@ -4,15 +4,16 @@
 
 #include <Particle.h>
 #include "component.hpp"
+#include "../device_config.hpp"
 
 struct MC_Vector {
     public:
-        float x;
-        float y;
-        float z;
-        float rotX;
-        float rotY;
-        float rotZ;
+        int16_t x;
+        int16_t y;
+        int16_t z;
+        int16_t rotX;
+        int16_t rotY;
+        int16_t rotZ;
         MC_Vector(void);
 };
 
@@ -35,6 +36,8 @@ struct MC_Motion : MC_Component {
         void init(void);
         void shutdown(void);
         void step(void);
+        void retrieveMotionData(void);
+        void toogleWOM(void);
 };
 
 #endif /* __MOTION_HPP__ */

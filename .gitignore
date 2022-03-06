@@ -8,4 +8,6 @@ __pycache__/
 *.cam
 Project*Outputs*for*MC*Alarm/
 .OutJob
+target/software/android/MonkeydoGPSAlarm/.idea/
 target/
+.idea/
