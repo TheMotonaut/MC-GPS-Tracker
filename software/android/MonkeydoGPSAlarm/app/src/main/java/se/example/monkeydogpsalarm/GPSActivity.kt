@@ -11,6 +11,7 @@ import androidx.room.Room
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.eclipse.paho.android.service.MqttAndroidClient
 import se.example.monkeydogpsalarm.ble.BLEManager
 import se.example.monkeydogpsalarm.data.ControlEvent
 import se.example.monkeydogpsalarm.data.DataCharacteristicData
@@ -18,6 +19,7 @@ import se.example.monkeydogpsalarm.db.Journey
 import se.example.monkeydogpsalarm.db.JourneyDatabase
 import se.example.monkeydogpsalarm.db.PeripheralStatus
 import se.example.monkeydogpsalarm.viewmodels.DataViewModel
+import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -26,6 +28,9 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
         "yyyy-MM-dd'T'HH:mm:ssZ",
         Locale.ENGLISH
     )
+
+    private val SERVER_URI: URI = URI.create("localhost")
+    private val CLIENT_ID = "my-app-client"
 
     private lateinit var model: DataViewModel
 
@@ -76,6 +81,15 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
                 JourneyDatabase::class.java, "journey"
             ).build()
             gpsViewModel.gpsDatabase = db.journeyDao()
+        }
+        if(gpsViewModel.mqtt == null) {
+            val client = MqttAndroidClient(
+                applicationContext,
+                SERVER_URI.toString(),
+                CLIENT_ID
+            )
+            gpsViewModel.mqtt = client
+            gpsViewModel.connectMQTT()
         }
         model = gpsViewModel
 
