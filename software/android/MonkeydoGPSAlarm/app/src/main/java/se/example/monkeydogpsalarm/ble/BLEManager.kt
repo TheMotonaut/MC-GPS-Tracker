@@ -193,7 +193,7 @@ class BLEManager (
 
     fun selectScanItem(item: BluetoothScanItem, context: Context) {
         currentGatt?.disconnect()
-        currentGatt = item.bleDevice.connectGatt(
+        currentGatt = item.bleDevice?.connectGatt(
                 context,
                 true,
                 gattCallback

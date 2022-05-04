@@ -16,8 +16,8 @@ import se.example.monkeydogpsalarm.db.Journey
 import se.example.monkeydogpsalarm.db.JourneyDao
 
 class DataViewModel : ViewModel() {
-    private val MQTT_USERNAME = "lol"
-    private val MQTT_PASSWORD = "poll"
+    private val MQTT_USERNAME = ""
+    private val MQTT_PASSWORD = ""
 
     private var dataMutable: MutableLiveData<DataCharacteristicData> = MutableLiveData()
     private var databaseMutable: MutableLiveData<JourneyDao> = MutableLiveData()
@@ -79,17 +79,21 @@ class DataViewModel : ViewModel() {
             val options = MqttConnectOptions()
             options.userName = MQTT_USERNAME
             options.password = MQTT_PASSWORD.toCharArray()
+            options.serverURIs
             try {
                 mqtt.connect(options, null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(LogConstants.MQTT, "Mqtt connected")
+                        subscribeMQTT("test", 0)
+
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                        Log.d(LogConstants.MQTT, "Mqtt failed to connect")
+                        Log.d(LogConstants.MQTT, "Mqtt failed to connect:" + exception?.toString())
                     }
                 })
             } catch (error: MqttException) {
+                Log.e(LogConstants.MQTT, error.toString())
                 error.printStackTrace()
             }
         }
@@ -102,6 +106,7 @@ class DataViewModel : ViewModel() {
                 mqtt.subscribe(topic, qos, null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(LogConstants.MQTT, "Mqtt subscribed")
+                        publishMQTT("test", "Yeh boi", 0, false)
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {

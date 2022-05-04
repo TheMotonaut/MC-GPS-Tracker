@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var model: ScanViewModel
     private lateinit var scanRecyclerView: RecyclerView
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
-    private lateinit var bleManager: BLEManager
+    private var bleManager: BLEManager? = null
 
     class ScanItemViewHolder(view: View): RecyclerView.ViewHolder(view) {
         val nameField: TextView
@@ -142,16 +142,21 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         // Open a bluetooth adater.
-        bleManager = BLEManager(
-            object : GPSDataCallback {
-                override fun dataReceived(data: DataCharacteristicData) {
-                    TODO("Not yet implemented")
+        try {
+            bleManager = BLEManager(
+                object : GPSDataCallback {
+                    override fun dataReceived(data: DataCharacteristicData) {
+                        TODO("Not yet implemented")
+                    }
                 }
+            )
+            if (bleManager?.openBluetooth(this) == true) {
+                Log.e(LogConstants.BLUETOOTH, "Failed to open bluetooth.")
             }
-        )
-        if(bleManager.openBluetooth(this)) {
-            processBluetooth()
+        } catch(error: Exception) {
+            Log.e(LogConstants.BLUETOOTH, error.toString())
         }
+        processBluetooth()
         // Start testing for permissions.
         if(processPermissions()) {
             postPermissionCheck()
@@ -208,15 +213,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun processBluetooth() {
-        val compatibleDevice = bleManager.processBluetooth()
-        if(compatibleDevice.size > 0) {
-            val list = model.scanItems
-            list.clear()
+        val list = model.scanItems
+        list.clear()
+        list.add(
+            BluetoothScanItem(
+                "TEST",
+                "TEST",
+                true,
+                null
+            )
+        )
+        val compatibleDevice = bleManager?.processBluetooth()
+        if(compatibleDevice == null) {
+            // Ignore.
+        } else if(compatibleDevice.size > 0) {
             list.addAll(compatibleDevice)
-            model.scanItems = list
-            scanRecyclerView.adapter?.notifyDataSetChanged()
         } else {
             Log.e(LogConstants.BLUETOOTH, "No compatible devices found.")
         }
+        model.scanItems = list
+        scanRecyclerView.adapter?.notifyDataSetChanged()
     }
 }

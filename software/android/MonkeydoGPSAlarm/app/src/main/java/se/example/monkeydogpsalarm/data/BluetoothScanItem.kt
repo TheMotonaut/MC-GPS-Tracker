@@ -6,5 +6,5 @@ data class BluetoothScanItem (
     val name: String,
     val macAddress: String,
     val isPaired: Boolean,
-    val bleDevice: BluetoothDevice
+    val bleDevice: BluetoothDevice?
 )

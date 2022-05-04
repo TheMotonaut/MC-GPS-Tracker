@@ -29,7 +29,7 @@ class GPSActivity : AppCompatActivity(), GPSDataCallback {
         Locale.ENGLISH
     )
 
-    private val SERVER_URI: URI = URI.create("localhost")
+    private val SERVER_URI = ""
     private val CLIENT_ID = "my-app-client"
 
     private lateinit var model: DataViewModel
